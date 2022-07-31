@@ -25,8 +25,8 @@ build/
 vendor/
 
 # Files
-# Root binary name omitted: it would ignore the bip38cli/ source package.
-# Builds use bin/bip38cli via make / .make/build.sh.
+/bip38cli
+!/bip38cli/
 go.work
 go.work.sum
 *.test

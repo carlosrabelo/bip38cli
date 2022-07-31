@@ -1,53 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BIN_NAME="bip38cli"
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN_PATH="${PROJECT_ROOT}/bin/${BIN_NAME}"
-TARGET_DIR="/usr/local/bin"
-MODE="system"
+BINARY_NAME="${BINARY_NAME:-bip38cli}"
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SRC="$ROOT_DIR/bin/$BINARY_NAME"
 
-usage() {
-  echo "Usage: $0 [--user]" >&2
-  exit 1
-}
-
-resolve_user_target_dir() {
-  if [[ -d "${HOME}/.local/go/bin" ]] && echo "${PATH}" | tr ':' '\n' | grep -qx "${HOME}/.local/go/bin"; then
-    echo "${HOME}/.local/go/bin"
-  else
-    echo "${HOME}/.local/bin"
+# Prefer the invoking user's home when running under sudo.
+user_home() {
+  if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+    getent passwd "$SUDO_USER" | cut -d: -f6
+    return
   fi
+  echo "${HOME}"
 }
 
-if [[ "${1:-}" == "--user" ]]; then
-  TARGET_DIR="$(resolve_user_target_dir)"
-  MODE="user"
-  shift
+# PREFIX=… → custom prefix; else ~/.local/bin (system-wide via .deb — see skeleton-deb)
+if [ -n "${PREFIX:-}" ]; then
+  INSTALL_DIR="${PREFIX%/}/bin"
+else
+  INSTALL_DIR="$(user_home)/.local/bin"
 fi
 
-if [[ $# -gt 0 ]]; then
-  usage
-fi
-
-if [[ ! -f "${BIN_PATH}" ]]; then
-  echo "Binary not found at ${BIN_PATH}. Run make build first." >&2
+if [ ! -x "$SRC" ]; then
+  echo "error: missing binary: $SRC" >&2
+  echo "hint:  run make build first" >&2
   exit 1
 fi
 
-if [[ ! -d "${TARGET_DIR}" ]]; then
-  mkdir -p "${TARGET_DIR}"
+DEST="$INSTALL_DIR/$BINARY_NAME"
+UH="$(user_home)"
+
+# Under sudo: install into the user's home as that user so paths/ownership stay correct.
+if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+  case "$INSTALL_DIR" in
+    "$UH" | "$UH"/*)
+      sudo -u "$SUDO_USER" install -D -m 755 "$SRC" "$DEST"
+      ;;
+    *)
+      install -D -m 755 "$SRC" "$DEST"
+      ;;
+  esac
+elif [ -w "$(dirname "$INSTALL_DIR")" ] 2>/dev/null || [ -w "$INSTALL_DIR" ] 2>/dev/null; then
+  install -D -m 755 "$SRC" "$DEST"
+else
+  echo "Destination not writable; using sudo for install only..."
+  sudo install -D -m 755 "$SRC" "$DEST"
 fi
 
-if [[ ! -w "${TARGET_DIR}" ]]; then
-  echo "No write access to ${TARGET_DIR}. Use sudo or --user option." >&2
-  exit 1
-fi
-
-install -m 0755 "${BIN_PATH}" "${TARGET_DIR}/${BIN_NAME}"
-
-if [[ "${MODE}" == "user" ]] && ! echo "${PATH}" | tr ':' '\n' | grep -qx "${TARGET_DIR}"; then
-  echo "Warning: ${TARGET_DIR} not in PATH. Add it to your shell profile." >&2
-fi
-
-echo "Installed ${BIN_NAME} to ${TARGET_DIR}" >&2
+echo "Installed: $DEST"

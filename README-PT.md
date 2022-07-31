@@ -40,24 +40,13 @@ make build
 ./bin/bip38cli --version
 ```
 
-Instale em `$HOME/.local/bin` (recomendado para usuários sem sudo):
+Instale em `~/.local/bin` (padrão) ou defina `PREFIX` para um prefixo personalizado. A instalação em todo o sistema é feita por um `.deb`:
 
 ```bash
 make install
-```
-
-Instale em `/usr/local/bin` (requer permissões apropriadas):
-
-```bash
-sudo make install
-```
-
-Remova o binário depois:
-
-```bash
 make uninstall
-# ou
-sudo make uninstall
+make package   # CLIs compiladas — veja Desenvolvimento
+sudo dpkg -i dist/*.deb
 ```
 
 ## Início Rápido
@@ -226,14 +215,15 @@ bip38cli/                     # raiz do repositório (infraestrutura)
 Comandos úteis na raiz do repositório:
 
 ```bash
-make build      # Compila o binário em bin/bip38cli
-make fmt        # Formata os arquivos Go
-make test       # Executa go test ./...
-make quality    # Roda todas as checagens de qualidade
-make install    # Instala em $HOME/.local/bin
-make uninstall  # Remove de $HOME/.local/bin
-make version    # Mostra informações de versão
-make clean      # Remove artefatos de build
+make build           # Compila o binário em bin/bip38cli
+make test            # Executa todos os testes
+make quality         # Formata, roda vet e lint
+make install         # Instala o binário em ~/.local/bin
+make uninstall       # Remove de ~/.local/bin
+make package         # Gera um .deb em dist/ (binário em /usr/bin)
+make deb             # Atalho para package
+make version         # Mostra a versão
+make clean           # Remove artefatos de build
 ```
 
 O módulo Go reside em `github.com/carlosrabelo/bip38cli`. Os testes do domínio BIP38 executam derivação scrypt real e podem levar alguns segundos.

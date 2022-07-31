@@ -1,62 +1,43 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BIN_NAME="bip38cli"
-TARGET_DIR="/usr/local/bin"
-MODE="system"
+BINARY_NAME="${BINARY_NAME:-bip38cli}"
 
-usage() {
-  echo "Usage: $0 [--user]" >&2
-  exit 1
-}
-
-resolve_user_target_dir() {
-  if [[ -d "${HOME}/.local/go/bin" ]] && echo "${PATH}" | tr ':' '\n' | grep -qx "${HOME}/.local/go/bin"; then
-    echo "${HOME}/.local/go/bin"
-  else
-    echo "${HOME}/.local/bin"
+# Prefer the invoking user's home when running under sudo.
+user_home() {
+  if [ "$(id -u)" -eq 0 ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+    getent passwd "$SUDO_USER" | cut -d: -f6
+    return
   fi
+  echo "${HOME}"
 }
 
-if [[ "${1:-}" == "--user" ]]; then
-  TARGET_DIR="$(resolve_user_target_dir)"
-  MODE="user"
-  shift
-fi
+USER_LOCAL="$(user_home)/.local/bin/${BINARY_NAME}"
 
-if [[ $# -gt 0 ]]; then
-  usage
-fi
-
-TARGET_PATH="${TARGET_DIR}/${BIN_NAME}"
-
-CANDIDATES=("${TARGET_PATH}")
-if [[ "${MODE}" == "user" ]]; then
-  for alt in "${HOME}/.local/bin/${BIN_NAME}" "${HOME}/.local/go/bin/${BIN_NAME}"; do
-    if [[ "${alt}" != "${TARGET_PATH}" ]]; then
-      CANDIDATES+=("${alt}")
-    fi
-  done
+targets=()
+if [ -n "${PREFIX:-}" ]; then
+  targets+=("${PREFIX%/}/bin/${BINARY_NAME}")
+else
+  targets+=("$USER_LOCAL")
 fi
 
 removed=0
-for path in "${CANDIDATES[@]}"; do
-  dir="$(dirname "${path}")"
-  if [[ -e "${path}" ]]; then
-    if [[ ! -w "${dir}" ]]; then
-      echo "No write access to ${dir}. Use sudo or --user option." >&2
-      exit 1
-    fi
-    rm -f "${path}"
-    echo "Removed ${BIN_NAME} from ${dir}" >&2
-    removed=1
+for target in "${targets[@]}"; do
+  if [ ! -e "$target" ]; then
+    continue
   fi
+  dir="$(dirname "$target")"
+  # Directory write bit is enough to unlink; escalate when the dir is root-owned
+  # (e.g. leftover from an older sudo make install).
+  if [ -w "$dir" ] 2>/dev/null && rm -f "$target" 2>/dev/null; then
+    :
+  else
+    sudo rm -f "$target"
+  fi
+  echo "Removed: $target"
+  removed=$((removed + 1))
 done
 
-if [[ "${removed}" -eq 0 ]]; then
-  echo "No ${BIN_NAME} binary found at ${TARGET_PATH}" >&2
-fi
-
-if [[ "${MODE}" == "user" ]] && ! echo "${PATH}" | tr ':' '\n' | grep -qx "${TARGET_DIR}"; then
-  echo "Reminder: ${TARGET_DIR} not in PATH." >&2
+if [ "$removed" -eq 0 ]; then
+  echo "Not installed (checked: ${targets[*]})"
 fi

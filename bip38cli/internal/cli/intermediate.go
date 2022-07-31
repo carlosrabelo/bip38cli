@@ -68,9 +68,9 @@ Examples:
 }
 
 var (
-	lotNumber                    uint32
-	sequenceNumber               uint32
-	useLotSeq                    bool
+	lotNumber                       uint32
+	sequenceNumber                  uint32
+	useLotSeq                       bool
 	encryptIntermediateUncompressed bool
 )
 
