@@ -366,6 +366,41 @@ func TestRunEncryptWithInvalidWIF(t *testing.T) {
 	}
 }
 
+func TestParseAddressType(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    addressType
+		wantErr string
+	}{
+		{name: "empty", input: "", want: addressTypeBIP84},
+		{name: "bip84", input: "bip84", want: addressTypeBIP84},
+		{name: "bip84 mixed case", input: " BIP84 ", want: addressTypeBIP84},
+		{name: "bip44", input: "bip44", want: addressTypeBIP44},
+		{name: "bip44 mixed case", input: "BIP44", want: addressTypeBIP44},
+		{name: "unknown", input: "legacy", wantErr: "unsupported address type: legacy"},
+		{name: "unknown keeps original text", input: " Foo ", wantErr: "unsupported address type:  Foo "},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseAddressType(tt.input)
+			if tt.wantErr != "" {
+				if err == nil || err.Error() != tt.wantErr {
+					t.Fatalf("error = %v, want %q", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseAddressType: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAddressForWIFUsesCorrectNetwork(t *testing.T) {
 	keyBytes := make([]byte, 32)
 	keyBytes[len(keyBytes)-1] = 1
