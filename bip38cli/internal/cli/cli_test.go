@@ -401,6 +401,47 @@ func TestParseAddressType(t *testing.T) {
 	}
 }
 
+func TestAddressForWIFLegacyAndUncompressedFallback(t *testing.T) {
+	keyBytes := make([]byte, 32)
+	keyBytes[len(keyBytes)-1] = 1
+	priv, _ := btcec.PrivKeyFromBytes(keyBytes)
+
+	compressed, err := btcutil.NewWIF(priv, &chaincfg.MainNetParams, true)
+	if err != nil {
+		t.Fatalf("compressed WIF: %v", err)
+	}
+	uncompressed, err := btcutil.NewWIF(priv, &chaincfg.MainNetParams, false)
+	if err != nil {
+		t.Fatalf("uncompressed WIF: %v", err)
+	}
+
+	legacy, err := addressForWIF(compressed, addressTypeBIP44)
+	if err != nil {
+		t.Fatalf("bip44: %v", err)
+	}
+	compressedHash := btcutil.Hash160(priv.PubKey().SerializeCompressed())
+	expectedLegacy, err := btcutil.NewAddressPubKeyHash(compressedHash, &chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("expected P2PKH: %v", err)
+	}
+	if legacy != expectedLegacy.EncodeAddress() {
+		t.Fatalf("bip44 = %s, want %s", legacy, expectedLegacy.EncodeAddress())
+	}
+
+	fallback, err := addressForWIF(uncompressed, addressTypeBIP84)
+	if err != nil {
+		t.Fatalf("uncompressed bip84: %v", err)
+	}
+	uncompressedHash := btcutil.Hash160(priv.PubKey().SerializeUncompressed())
+	expectedFallback, err := btcutil.NewAddressPubKeyHash(uncompressedHash, &chaincfg.MainNetParams)
+	if err != nil {
+		t.Fatalf("expected uncompressed P2PKH: %v", err)
+	}
+	if fallback != expectedFallback.EncodeAddress() {
+		t.Fatalf("fallback = %s, want %s", fallback, expectedFallback.EncodeAddress())
+	}
+}
+
 func TestAddressForWIFUsesCorrectNetwork(t *testing.T) {
 	keyBytes := make([]byte, 32)
 	keyBytes[len(keyBytes)-1] = 1
