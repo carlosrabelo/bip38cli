@@ -1133,3 +1133,47 @@ func TestRunMetricsText(t *testing.T) {
 		}
 	}
 }
+
+func TestRunMetricsJSON(t *testing.T) {
+	metrics.Reset()
+	t.Cleanup(metrics.Reset)
+
+	cmd := &cobra.Command{Use: "metrics"}
+	cmd.Flags().String("output-format", "text", "")
+	if err := cmd.Flags().Set("output-format", "json"); err != nil {
+		t.Fatalf("set output-format: %v", err)
+	}
+
+	collect, restore := captureOutput()
+	defer restore()
+
+	if err := runMetrics(cmd, nil); err != nil {
+		t.Fatalf("runMetrics: %v", err)
+	}
+
+	var payload map[string]json.RawMessage
+	if err := json.Unmarshal(collect(), &payload); err != nil {
+		t.Fatalf("parse JSON: %v", err)
+	}
+
+	for _, key := range []string{
+		"encrypt_count",
+		"decrypt_count",
+		"intermediate_count",
+		"encrypt_duration_total",
+		"decrypt_duration_total",
+		"intermediate_duration_total",
+		"encrypt_errors",
+		"decrypt_errors",
+		"intermediate_errors",
+		"average_encrypt_time",
+		"average_decrypt_time",
+		"average_intermediate_time",
+		"start_time",
+		"uptime",
+	} {
+		if _, ok := payload[key]; !ok {
+			t.Fatalf("missing field %s", key)
+		}
+	}
+}
