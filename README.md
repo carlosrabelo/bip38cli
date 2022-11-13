@@ -143,6 +143,21 @@ bip38cli intermediate generate --output-format json --lot 123 --sequence 456 --u
 
 # Validate a provided code
 bip38cli intermediate validate passphraseabc123...
+
+# Encrypt from an intermediate code without asking for the passphrase
+bip38cli intermediate encrypt passphraseabc123...
+
+# Same result as JSON
+bip38cli intermediate encrypt --output-format json passphraseabc123...
+```
+
+Show encrypt, decrypt, and intermediate counters:
+
+```bash
+bip38cli metrics
+
+# Same counters as JSON
+bip38cli metrics --output-format json
 ```
 
 Generate shell completions for your environment:

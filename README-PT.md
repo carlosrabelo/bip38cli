@@ -143,6 +143,21 @@ bip38cli intermediate generate --output-format json --lot 123 --sequence 456 --u
 
 # Validar um código existente
 bip38cli intermediate validate passphraseabc123...
+
+# Criptografar a partir de um código intermediário sem pedir a senha
+bip38cli intermediate encrypt passphraseabc123...
+
+# O mesmo resultado em JSON
+bip38cli intermediate encrypt --output-format json passphraseabc123...
+```
+
+Exibir os contadores de encrypt, decrypt e intermediate:
+
+```bash
+bip38cli metrics
+
+# Os mesmos contadores em JSON
+bip38cli metrics --output-format json
 ```
 
 Gerar autocompletes para o seu shell:

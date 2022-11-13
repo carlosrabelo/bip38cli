@@ -171,6 +171,19 @@ bip38cli intermediate validate passphraseabc123...
 # Verifies if the code is valid
 ```
 
+**Encrypt from a Code:**
+```bash
+# Does not ask for the passphrase
+bip38cli intermediate encrypt passphraseXXX...
+# Result: encrypted key (6P...) and confirmation code (cfrm38...)
+```
+
+**Operation Counters:**
+```bash
+bip38cli metrics
+bip38cli metrics --output-format json
+```
+
 ##  Advanced Scenarios
 
 ### Scenario 1: Secure Wallet Backup

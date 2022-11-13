@@ -171,6 +171,19 @@ bip38cli intermediate validate passphraseabc123...
 # Verifica se o código é válido
 ```
 
+**Criptografar a partir de um Código:**
+```bash
+# Não pede a senha
+bip38cli intermediate encrypt passphraseXXX...
+# Resultado: chave criptografada (6P...) e código de confirmação (cfrm38...)
+```
+
+**Contadores de Operação:**
+```bash
+bip38cli metrics
+bip38cli metrics --output-format json
+```
+
 ##  Cenários Avançados
 
 ### Cenário 1: Backup Seguro de Carteira
