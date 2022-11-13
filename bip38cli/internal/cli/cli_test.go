@@ -1071,3 +1071,39 @@ func TestRunDecryptWithShowAddress(t *testing.T) {
 		t.Fatalf("runDecrypt returned unexpected error: %v", runErr)
 	}
 }
+
+func TestRunEncryptIntermediate(t *testing.T) {
+	origReadPassword := readPassword
+	defer func() { readPassword = origReadPassword }()
+	readPassword = func(int) ([]byte, error) {
+		t.Fatal("intermediate encrypt must not prompt for a passphrase")
+		return nil, nil
+	}
+
+	encryptIntermediateUncompressed = false
+	defer func() { encryptIntermediateUncompressed = false }()
+
+	code, err := bip38.GenerateIntermediateCode([]byte("TestingOneTwoThree"), nil, nil)
+	if err != nil {
+		t.Fatalf("GenerateIntermediateCode: %v", err)
+	}
+
+	cmd := &cobra.Command{Use: "encrypt"}
+	collect, restore := captureOutput()
+	defer restore()
+
+	if err := runEncryptIntermediate(cmd, []string{code}); err != nil {
+		t.Fatalf("runEncryptIntermediate: %v", err)
+	}
+
+	output := string(collect())
+	if !strings.Contains(output, "Encrypted key:") {
+		t.Fatalf("missing encrypted key line: %q", output)
+	}
+	if !strings.Contains(output, "Confirmation code:") {
+		t.Fatalf("missing confirmation code line: %q", output)
+	}
+	if strings.Contains(output, "Enter passphrase") || strings.Contains(output, "Confirm passphrase") {
+		t.Fatalf("prompted for a passphrase: %q", output)
+	}
+}
