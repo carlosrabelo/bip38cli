@@ -15,6 +15,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/carlosrabelo/bip38cli/bip38cli/internal/bip38"
 	"github.com/carlosrabelo/bip38cli/bip38cli/internal/logger"
+	"github.com/carlosrabelo/bip38cli/bip38cli/internal/metrics"
 	"github.com/spf13/cobra"
 )
 
@@ -1105,5 +1106,30 @@ func TestRunEncryptIntermediate(t *testing.T) {
 	}
 	if strings.Contains(output, "Enter passphrase") || strings.Contains(output, "Confirm passphrase") {
 		t.Fatalf("prompted for a passphrase: %q", output)
+	}
+}
+
+func TestRunMetricsText(t *testing.T) {
+	metrics.Reset()
+	t.Cleanup(metrics.Reset)
+
+	cmd := &cobra.Command{Use: "metrics"}
+	collect, restore := captureOutput()
+	defer restore()
+
+	if err := runMetrics(cmd, nil); err != nil {
+		t.Fatalf("runMetrics: %v", err)
+	}
+
+	output := string(collect())
+	for _, line := range []string{
+		"Uptime:",
+		"Encrypt  - count:",
+		"Decrypt  - count:",
+		"Intermediate - count:",
+	} {
+		if !strings.Contains(output, line) {
+			t.Fatalf("missing %q in %q", line, output)
+		}
 	}
 }
