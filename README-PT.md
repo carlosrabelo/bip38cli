@@ -99,14 +99,21 @@ O BIP38CLI suporta autocompletar para bash, zsh, fish e PowerShell.
 
 ### Bash
 ```bash
-# Adicionar ao ~/.bashrc
+# Instalação no sistema (recomendado)
+sudo bip38cli completion bash > /usr/share/bash-completion/completions/bip38cli
+
+# Ou instalação específica do usuário
 echo 'source <(bip38cli completion bash)' >> ~/.bashrc
 source ~/.bashrc
 ```
 
 ### Zsh
 ```bash
-# Adicionar ao ~/.zshrc
+# Instalação no sistema (recomendado)
+sudo mkdir -p /usr/share/zsh/site-functions
+sudo bip38cli completion zsh > /usr/share/zsh/site-functions/_bip38cli
+
+# Ou instalação específica do usuário
 echo 'source <(bip38cli completion zsh)' >> ~/.zshrc
 source ~/.zshrc
 ```
