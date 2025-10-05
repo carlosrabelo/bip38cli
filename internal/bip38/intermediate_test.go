@@ -1,0 +1,287 @@
+package bip38
+
+import (
+	"testing"
+)
+
+func TestGenerateIntermediateCode(t *testing.T) {
+	tests := []struct {
+		name       string
+		passphrase string
+		lot        *uint32
+		seq        *uint32
+		wantErr    bool
+	}{
+		{
+			name:       "simple passphrase without lot/seq",
+			passphrase: "TestingOneTwoThree",
+			lot:        nil,
+			seq:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "simple passphrase with lot/seq",
+			passphrase: "TestingOneTwoThree",
+			lot:        uint32Ptr(123),
+			seq:        uint32Ptr(456),
+			wantErr:    false,
+		},
+		{
+			name:       "empty passphrase",
+			passphrase: "",
+			lot:        nil,
+			seq:        nil,
+			wantErr:    false, // BIP38 allows empty passphrases
+		},
+		{
+			name:       "complex passphrase",
+			passphrase: "!@#$%^&*()_+-=[]{}|;':\",./<>?`~",
+			lot:        nil,
+			seq:        nil,
+			wantErr:    false,
+		},
+		{
+			name:       "max lot and seq values",
+			passphrase: "test",
+			lot:        uint32Ptr(1048575), // 2^20 - 1
+			seq:        uint32Ptr(4095),    // 2^12 - 1
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			code, err := GenerateIntermediateCode(tt.passphrase, tt.lot, tt.seq)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GenerateIntermediateCode() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				// Verify the generated code is valid
+				if !IsValidIntermediateCode(code) {
+					t.Errorf("Generated intermediate code is not valid: %s", code)
+				}
+
+				// Parse the code to verify structure
+				parsed, err := ParseIntermediateCode(code)
+				if err != nil {
+					t.Errorf("Failed to parse generated intermediate code: %v", err)
+				}
+
+				// Verify lot/seq encoding
+				if tt.lot != nil && tt.seq != nil {
+					if !parsed.HasLotSeq {
+						t.Error("Expected HasLotSeq to be true")
+					}
+					if parsed.LotNumber == nil || *parsed.LotNumber != *tt.lot {
+						t.Errorf("Lot number mismatch: got %v, want %v", parsed.LotNumber, *tt.lot)
+					}
+					if parsed.SeqNumber == nil || *parsed.SeqNumber != *tt.seq {
+						t.Errorf("Sequence number mismatch: got %v, want %v", parsed.SeqNumber, *tt.seq)
+					}
+				} else {
+					if parsed.HasLotSeq {
+						t.Error("Expected HasLotSeq to be false")
+					}
+					if parsed.LotNumber != nil || parsed.SeqNumber != nil {
+						t.Error("Expected lot and sequence numbers to be nil")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestIsValidIntermediateCode(t *testing.T) {
+	tests := []struct {
+		name     string
+		code     string
+		expected bool
+	}{
+		{
+			name:     "empty string",
+			code:     "",
+			expected: false,
+		},
+		{
+			name:     "too short",
+			code:     "passphrase",
+			expected: false,
+		},
+		{
+			name:     "invalid base58",
+			code:     "passphrase0IL",
+			expected: false,
+		},
+		{
+			name:     "wrong magic",
+			code:     "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsValidIntermediateCode(tt.code)
+			if result != tt.expected {
+				t.Errorf("IsValidIntermediateCode(%q) = %v, want %v", tt.code, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestParseIntermediateCode(t *testing.T) {
+	// Generate a known code for testing
+	passphrase := "TestingOneTwoThree"
+	lot := uint32Ptr(123)
+	seq := uint32Ptr(456)
+
+	code, err := GenerateIntermediateCode(passphrase, lot, seq)
+	if err != nil {
+		t.Fatalf("Failed to generate test intermediate code: %v", err)
+	}
+
+	// Parse it back
+	parsed, err := ParseIntermediateCode(code)
+	if err != nil {
+		t.Fatalf("Failed to parse intermediate code: %v", err)
+	}
+
+	// Verify the parsed data
+	if parsed.Code != code {
+		t.Errorf("Code mismatch: got %s, want %s", parsed.Code, code)
+	}
+
+	if !parsed.HasLotSeq {
+		t.Error("Expected HasLotSeq to be true")
+	}
+
+	if parsed.LotNumber == nil || *parsed.LotNumber != *lot {
+		t.Errorf("Lot number mismatch: got %v, want %v", parsed.LotNumber, *lot)
+	}
+
+	if parsed.SeqNumber == nil || *parsed.SeqNumber != *seq {
+		t.Errorf("Sequence number mismatch: got %v, want %v", parsed.SeqNumber, *seq)
+	}
+
+	if len(parsed.OwnerSalt) != 4 {
+		t.Errorf("Expected owner salt length 4, got %d", len(parsed.OwnerSalt))
+	}
+
+	if len(parsed.PassPoint) != 33 {
+		t.Errorf("Expected pass point length 33, got %d", len(parsed.PassPoint))
+	}
+}
+
+func TestParseIntermediateCodeNoLotSeq(t *testing.T) {
+	// Generate a code without lot/seq
+	passphrase := "TestingOneTwoThree"
+
+	code, err := GenerateIntermediateCode(passphrase, nil, nil)
+	if err != nil {
+		t.Fatalf("Failed to generate test intermediate code: %v", err)
+	}
+
+	// Parse it back
+	parsed, err := ParseIntermediateCode(code)
+	if err != nil {
+		t.Fatalf("Failed to parse intermediate code: %v", err)
+	}
+
+	// Verify the parsed data
+	if parsed.HasLotSeq {
+		t.Error("Expected HasLotSeq to be false")
+	}
+
+	if parsed.LotNumber != nil {
+		t.Errorf("Expected lot number to be nil, got %v", parsed.LotNumber)
+	}
+
+	if parsed.SeqNumber != nil {
+		t.Errorf("Expected sequence number to be nil, got %v", parsed.SeqNumber)
+	}
+
+	if len(parsed.OwnerSalt) != 8 {
+		t.Errorf("Expected owner salt length 8, got %d", len(parsed.OwnerSalt))
+	}
+}
+
+func TestParseInvalidIntermediateCode(t *testing.T) {
+	tests := []struct {
+		name        string
+		code        string
+		expectedErr string
+	}{
+		{
+			name:        "too short",
+			code:        "passphrase",
+			expectedErr: "invalid intermediate code length",
+		},
+		{
+			name:        "invalid checksum",
+			code:        "passphraseabc123def456ghi789jkl012mno345pqr678stu901vwx234yzabcdefghijklmnopqr",
+			expectedErr: "invalid checksum",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseIntermediateCode(tt.code)
+			if err == nil {
+				t.Error("Expected error for invalid intermediate code, got nil")
+			}
+			if err.Error() != tt.expectedErr {
+				t.Errorf("Expected error '%s', got: %v", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func BenchmarkGenerateIntermediateCode(b *testing.B) {
+	passphrase := "TestingOneTwoThree"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := GenerateIntermediateCode(passphrase, nil, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGenerateIntermediateCodeWithLotSeq(b *testing.B) {
+	passphrase := "TestingOneTwoThree"
+	lot := uint32Ptr(123)
+	seq := uint32Ptr(456)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := GenerateIntermediateCode(passphrase, lot, seq)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParseIntermediateCode(b *testing.B) {
+	// Generate a test code once
+	code, err := GenerateIntermediateCode("TestingOneTwoThree", nil, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := ParseIntermediateCode(code)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// Helper function to create uint32 pointer
+func uint32Ptr(v uint32) *uint32 {
+	return &v
+}
