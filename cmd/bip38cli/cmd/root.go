@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	cfgFile string
-	version string
+	cfgFile   string
+	version   string
 	buildTime string
 )
 

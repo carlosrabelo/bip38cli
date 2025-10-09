@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yourusername/bip38cli/cmd/bip38cli/cmd"
+	"github.com/carlosrabelo/bip38cli/cmd/bip38cli/cmd"
 )
 
 var (

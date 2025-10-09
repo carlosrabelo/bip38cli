@@ -7,9 +7,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/yourusername/bip38cli/internal/bip38"
-	"github.com/spf13/cobra"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
+	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 

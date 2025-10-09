@@ -20,12 +20,12 @@ var (
 
 // IntermediateCode represents a BIP38 intermediate passphrase code
 type IntermediateCode struct {
-	Code        string
-	OwnerSalt   []byte
-	PassPoint   []byte
-	HasLotSeq   bool
-	LotNumber   *uint32
-	SeqNumber   *uint32
+	Code      string
+	OwnerSalt []byte
+	PassPoint []byte
+	HasLotSeq bool
+	LotNumber *uint32
+	SeqNumber *uint32
 }
 
 // GenerateIntermediateCode generates a BIP38 intermediate passphrase code
@@ -146,12 +146,12 @@ func ParseIntermediateCode(code string) (*IntermediateCode, error) {
 	}
 
 	return &IntermediateCode{
-		Code:        code,
-		OwnerSalt:   ownerSalt,
-		PassPoint:   passPoint,
-		HasLotSeq:   hasLotSeq,
-		LotNumber:   lotNumber,
-		SeqNumber:   seqNumber,
+		Code:      code,
+		OwnerSalt: ownerSalt,
+		PassPoint: passPoint,
+		HasLotSeq: hasLotSeq,
+		LotNumber: lotNumber,
+		SeqNumber: seqNumber,
 	}, nil
 }
 

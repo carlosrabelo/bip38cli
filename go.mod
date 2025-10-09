@@ -1,4 +1,4 @@
-module github.com/yourusername/bip38cli
+module github.com/carlosrabelo/bip38cli
 
 go 1.24.0
 

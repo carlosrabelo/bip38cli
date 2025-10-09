@@ -220,9 +220,9 @@ func TestParseInvalidIntermediateCode(t *testing.T) {
 			expectedErr: "invalid intermediate code length",
 		},
 		{
-			name:        "invalid checksum",
-			code:        "passphraseabc123def456ghi789jkl012mno345pqr678stu901vwx234yzabcdefghijklmnopqr",
-			expectedErr: "invalid checksum",
+			name:        "invalid magic",
+			code:        "passphrase6PnQmGTgxHY1K8Wj3RhWQV5oFhFJ2tXfZjS9kDfGhWkChEn4MYdQhd9eQ",
+			expectedErr: "invalid intermediate code magic",
 		},
 	}
 

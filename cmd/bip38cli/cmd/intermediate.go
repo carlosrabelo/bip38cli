@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/yourusername/bip38cli/internal/bip38"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
 	"github.com/spf13/cobra"
 )
 
