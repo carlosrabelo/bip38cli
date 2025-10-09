@@ -13,7 +13,7 @@ LDFLAGS		= -s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)
 # Default target - show help
 .DEFAULT_GOAL := help
 
-.PHONY: help all build clean run test fmt vet lint deps mod-tidy info
+.PHONY: help all build clean run test fmt vet lint deps mod-tidy install uninstall info
 
 help:	## Show this help
 	@echo "BIP38CLI - BIP38 Bitcoin Key Encryption Tool"
@@ -66,9 +66,11 @@ mod-tidy:	## Clean up go.mod and go.sum
 	@echo "Tidying modules..."
 	@$(GO) mod tidy
 
-install:	## Install the binary
-	@echo "Installing $(BIN)..."
-	@$(GO) install -ldflags="$(LDFLAGS)" $(SRC)
+install: all	## Install the application using the helper script
+	@./scripts/install.sh $(BIN)
+
+uninstall:	## Uninstall the application using the helper script
+	@./scripts/uninstall.sh $(BIN)
 
 info:	## Show project information
 	@echo "Project: BIP38CLI"
