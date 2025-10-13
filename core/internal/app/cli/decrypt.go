@@ -9,6 +9,8 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -36,6 +38,13 @@ func init() {
 }
 
 func runDecrypt(cmd *cobra.Command, args []string) error {
+	// Reinitialize logger with verbose setting if needed
+	if isVerbose(cmd) {
+		logger.Init(true)
+	}
+
+	logger.Debug("Starting decryption process")
+
 	// Grab encrypted key text
 	var encryptedKey string
 	if len(args) > 0 {
@@ -47,20 +56,26 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 			encryptedKey = strings.TrimSpace(scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
-			return fmt.Errorf("failed to read encrypted key: %v", err)
+			logger.WithError(err).Error("Failed to read encrypted key from stdin")
+			return errors.NewInputError("failed to read encrypted key", err)
 		}
 	}
 
 	if encryptedKey == "" {
-		return fmt.Errorf("encrypted key is required")
+		logger.Error("No encrypted key provided")
+		return errors.NewValidationError("encrypted key is required", nil)
 	}
 
-	// Validate format before spending time
+	// Validate format before spending time on decryption
 	if !bip38.IsBIP38Format(encryptedKey) {
-		return fmt.Errorf("invalid BIP38 encrypted key format")
+		logger.WithField("key", encryptedKey).Error("Invalid BIP38 encrypted key format")
+		return errors.NewValidationError("invalid BIP38 encrypted key format", nil).
+			WithContext("key", encryptedKey)
 	}
 
-	// Ask passphrase same way as encrypt
+	logger.Debug("Validated BIP38 encrypted key format")
+
+	// Ask for passphrase the same way as encrypt
 	passphrase, err := getPassphrase("Enter passphrase: ")
 	if err != nil {
 		return fmt.Errorf("failed to read passphrase: %v", err)
@@ -74,13 +89,15 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 	// Decrypt the key with domain helper
 	wif, err := bip38.DecryptKey(encryptedKey, passphrase)
 	if err != nil {
-		return fmt.Errorf("decryption failed: %v", err)
+		logger.WithError(err).Error("Failed to decrypt private key")
+		return errors.NewCryptoError("decryption failed", err)
 	}
 
-	// Output result so user confirm
+	logger.Info("Successfully decrypted private key")
+	// Output result for user to confirm
 	fmt.Printf("Private key (WIF): %s\n", wif.String())
 
-	// Show address when user request
+	// Show address when user requests
 	if showAddress {
 		pubKey := wif.PrivKey.PubKey()
 		var pubKeyBytes []byte
@@ -98,7 +115,7 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Bitcoin address: %s\n", addressPubKey.EncodeAddress())
 	}
 
-	// Show extra info when verbose flag active
+	// Show extra info when verbose flag is active
 	if isVerbose(cmd) {
 		compression := "uncompressed"
 		if wif.CompressPubKey {

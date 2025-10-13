@@ -22,12 +22,11 @@ core/
   cmd/bip38cli/             # Go entry point for the CLI binary
   internal/app/cli/         # Cobra commands and user interaction flows
   internal/domain/bip38/    # BIP38 domain logic and tests
-  internal/infra/config/    # Viper configuration helpers
   pkg/                      # Reserved for future public packages
   Makefile                  # Go-specific build helpers
 bin/
   .gitkeep                  # Binary output directory placeholder
-README-PT.md              # Portuguese overview
+README-PT.md              # Portuguese documentation
 docs/
   TUTORIAL-EN.md            # English tutorial and walkthroughs
   TUTORIAL-PT.md            # Portuguese tutorial and walkthroughs
@@ -69,6 +68,18 @@ Remove the binary later with the matching uninstall script:
 # or
 sudo ./scripts/uninstall.sh
 ```
+
+### Run via Docker
+
+```bash
+# Show CLI help inside the container
+./scripts/bip38cli-docker.sh --help
+
+# Execute commands without installing Go locally
+./scripts/bip38cli-docker.sh encrypt --verbose
+```
+
+The helper script keeps Docker artefacts under `docker/` and will build a local image on demand. For advanced scenarios see `docker/README.md`.
 
 ## Usage
 
@@ -132,7 +143,6 @@ Set `verbose: true` to display the config path in use and additional diagnostic 
 
 - [English tutorial](docs/TUTORIAL-EN.md)
 - [Portuguese tutorial](docs/TUTORIAL-PT.md)
-- [Portuguese overview](README-PT.md)
 
 ## Development
 
@@ -155,6 +165,15 @@ The Go module lives at `github.com/carlosrabelo/bip38cli/core`. Tests for the BI
 - Keep passphrases separate from encrypted keys and avoid networked copy-paste tools
 - Prefer air-gapped machines for large batches or high-value wallets
 - Treat intermediate codes with the same care as encrypted keys
+
+## Donations
+
+If BIP38CLI is useful to you, consider supporting development:
+
+**BTC**: `bc1qw2raw7urfuu2032uyyx9k5pryan5gu6gmz6exm`  
+**ETH**: `0xdb4d2517C81bE4FE110E223376dD9B23ca3C762E`  
+**SOL**: `A3tNpXSb8rHw2PJYALQeZzwvR4pRWk72YwJdeXGKmS1q`  
+**TRX**: `TTznF3FeDCqLmL5gx8GingeahUyLsJJ68A`
 
 ## License
 

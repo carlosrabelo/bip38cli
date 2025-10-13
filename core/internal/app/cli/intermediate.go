@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -69,6 +71,13 @@ func init() {
 }
 
 func runGenerateIntermediate(cmd *cobra.Command, args []string) error {
+	// Reinitialize logger with verbose setting if needed
+	if isVerbose(cmd) {
+		logger.Init(true)
+	}
+
+	logger.Debug("Starting intermediate code generation")
+
 	// Validate lot and sequence numbers from flags
 	var lot, seq *uint32
 	lotChanged := cmd.Flag("lot").Changed
@@ -76,12 +85,14 @@ func runGenerateIntermediate(cmd *cobra.Command, args []string) error {
 
 	if useLotSeq {
 		if !lotChanged || !seqChanged {
-			return fmt.Errorf("both --lot and --sequence must be provided when --use-lot-sequence is set")
+			logger.Error("Use-lot-sequence flag set but missing lot or sequence")
+			return errors.NewValidationError("both --lot and --sequence must be provided when --use-lot-sequence is set", nil)
 		}
 	}
 
 	if lotChanged != seqChanged {
-		return fmt.Errorf("both --lot and --sequence must be provided together")
+		logger.Error("Lot and sequence flags must be provided together")
+		return errors.NewValidationError("both --lot and --sequence must be provided together", nil)
 	}
 
 	if useLotSeq || lotChanged || seqChanged {
@@ -109,9 +120,11 @@ func runGenerateIntermediate(cmd *cobra.Command, args []string) error {
 	// Generate intermediate code with domain layer
 	intermediate, err := bip38.GenerateIntermediateCode(passphrase, lot, seq)
 	if err != nil {
-		return fmt.Errorf("failed to generate intermediate code: %v", err)
+		logger.WithError(err).Error("Failed to generate intermediate code")
+		return errors.NewCryptoError("failed to generate intermediate code", err)
 	}
 
+	logger.Info("Successfully generated intermediate code")
 	// Output result to user screen
 	fmt.Printf("Intermediate code: %s\n", intermediate)
 
