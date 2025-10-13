@@ -1,37 +1,45 @@
 # BIP38CLI - Ferramenta de Criptografia de Chaves Bitcoin
 
-Uma ferramenta moderna de linha de comando para criptografia e descriptografia de chaves privadas BIP38 (Bitcoin Improvement Proposal 38), escrita em Go.
+Uma aplicação de linha de comando que implementa o padrão [BIP38](https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki) para criptografar e descriptografar chaves privadas Bitcoin com proteção por senha.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://go.dev/)
 [![Release](https://img.shields.io/github/release/carlosrabelo/bip38cli.svg)](https://github.com/carlosrabelo/bip38cli/releases)
 
-## Características
+## Destaques
 
-- **Criptografar/Descriptografar chaves privadas Bitcoin** usando padrão BIP38
-- **Gerar códigos de senha intermediários** para criptografia de dois fatores
-- **Suporte para chaves comprimidas e descomprimidas**
-- **Manuseio seguro de senhas** com entrada oculta
-- **Rápido e eficiente** - construído com Go e BTCSuite
-- **Suporte multiplataforma** (Linux, macOS, Windows)
-- **Autocompletar** para bash, zsh, fish e PowerShell
+- Criptografa e descriptografa chaves em formato WIF com rotinas compatíveis com o BIP38
+- Gera e valida códigos intermediários para fluxos de criação de chaves em dois fatores
+- Zera buffers de senha assim que possível para reduzir exposição na memória
+- Entrada oculta de senha no terminal, com alternância de compressão e modo verboso
+- Descoberta inteligente de configuração: `~/.bip38cli.yaml` → `./bip38cli.yaml` → `/etc/bip38cli/config.yaml`
+- Gera autocompletes para bash, zsh, fish e PowerShell
+
+## Estrutura do Projeto
+
+```
+core/
+  cmd/bip38cli/             # Ponto de entrada do binário CLI em Go
+  internal/app/cli/         # Comandos Cobra e fluxos de interação
+  internal/domain/bip38/    # Lógica de domínio BIP38 e testes
+  pkg/                      # Reservado para pacotes públicos futuros
+  Makefile                  # Auxiliares de build específicos de Go
+bin/
+  .gitkeep                  # Placeholder para saída de binários
+README-PT.md              # Documentação em português
+docs/
+  TUTORIAL-EN.md            # Tutorial em inglês
+  TUTORIAL-PT.md            # Tutorial em português
+scripts/
+  install.sh                # Auxiliar de instalação do binário
+  uninstall.sh              # Auxiliar de remoção do binário
+Makefile                    # Makefile raiz
+```
 
 ## Início Rápido
 
-### Instalação
+### Compilar a partir do código
 
-**Baixar binário pré-compilado:**
-```bash
-# Linux/macOS
-curl -LO https://github.com/carlosrabelo/bip38cli/releases/latest/download/bip38cli-linux-amd64.tar.gz
-tar -xzf bip38cli-*.tar.gz
-sudo mv bip38cli /usr/local/bin/
-
-# Verificar instalação
-bip38cli --version
-```
-
-**Compilar do código fonte:**
 ```bash
 git clone https://github.com/carlosrabelo/bip38cli.git
 cd bip38cli
@@ -39,231 +47,134 @@ make build
 ./bin/bip38cli --version
 ```
 
-### Uso Básico
+### Instalar o binário
 
-**Criptografar uma chave privada:**
+Instale em `$HOME/.local/bin` (recomendado para usuários sem sudo):
+
 ```bash
-bip38cli encrypt 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
-# Digite a senha quando solicitado
-# Saída: 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
+./scripts/install.sh --user
 ```
 
-**Descriptografar uma chave privada:**
+Instale em `/usr/local/bin` (requer permissões apropriadas):
+
+```bash
+sudo ./scripts/install.sh
+```
+
+Remova o binário mais tarde com o script correspondente:
+
+```bash
+./scripts/uninstall.sh --user
+# ou
+sudo ./scripts/uninstall.sh
+```
+
+### Executar via Docker
+
+```bash
+# Exibir ajuda dentro do container
+./scripts/bip38cli-docker.sh --help
+
+# Executar comandos sem instalar Go localmente
+./scripts/bip38cli-docker.sh encrypt --verbose
+```
+
+O script mantém os artefatos em `docker/` e constrói a imagem local sob demanda. Veja `docker/README.md` para cenários avançados.
+
+## Uso
+
+### Criptografar uma chave WIF
+
+```bash
+bip38cli encrypt KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+# O terminal solicita a senha duas vezes
+# Resultado: 6PRV...
+```
+
+### Descriptografar uma chave BIP38
+
 ```bash
 bip38cli decrypt 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
-# Digite a senha quando solicitado
-# Saída: 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
+# O terminal solicita a senha
+# Opcional: --show-address para exibir o endereço derivado
 ```
 
-## Comandos
+### Trabalhar com códigos intermediários
 
-### `encrypt` - Criptografar Chaves Privadas
 ```bash
-# Modo interativo (mais seguro)
-bip38cli encrypt
+# Gerar código com metadados de lot/sequence
+bip38cli intermediate generate --lot 123 --sequence 456 --use-lot-sequence
 
-# Modo direto
-bip38cli encrypt [CHAVE_PRIVADA_WIF]
-
-# Forçar formato comprimido
-bip38cli encrypt --compressed [CHAVE_PRIVADA_WIF]
+# Validar um código existente
+bip38cli intermediate validate passphraseabc123...
 ```
 
-### `decrypt` - Descriptografar Chaves Privadas
+Gerar autocompletes para o seu shell:
+
 ```bash
-# Modo interativo
-bip38cli decrypt
-
-# Modo direto
-bip38cli decrypt [CHAVE_CRIPTOGRAFADA]
-
-# Mostrar endereço Bitcoin
-bip38cli decrypt --show-address [CHAVE_CRIPTOGRAFADA]
-```
-
-### `intermediate` - Criptografia de Dois Fatores
-```bash
-# Gerar código intermediário
-bip38cli intermediate generate
-
-# Gerar com números de lote/sequência
-bip38cli intermediate generate --lot 123 --sequence 456
-
-# Validar código intermediário
-bip38cli intermediate validate [CODIGO_INTERMEDIARIO]
-```
-
-## Autocompletar
-
-O BIP38CLI suporta autocompletar para bash, zsh, fish e PowerShell.
-
-### Bash
-```bash
-# Adicionar ao ~/.bashrc
-echo 'source <(bip38cli completion bash)' >> ~/.bashrc
-source ~/.bashrc
-```
-
-### Zsh
-```bash
-# Adicionar ao ~/.zshrc
-echo 'source <(bip38cli completion zsh)' >> ~/.zshrc
-source ~/.zshrc
-```
-
-### Fish
-```bash
-# Gerar arquivo de autocompletar
-bip38cli completion fish > ~/.config/fish/completions/bip38cli.fish
-```
-
-### PowerShell
-```powershell
-# Adicionar ao perfil do PowerShell
+bip38cli completion bash       > /usr/share/bash-completion/completions/bip38cli
+bip38cli completion zsh        > /usr/share/zsh/site-functions/_bip38cli
+bip38cli completion fish       > ~/.config/fish/completions/bip38cli.fish
 bip38cli completion powershell | Out-String | Invoke-Expression
 ```
 
 ## Configuração
 
-Crie um arquivo de configuração em `~/.bip38cli.yaml`:
+O BIP38CLI lê configurações com Viper seguindo esta ordem:
+
+1. `--config /caminho/para/arquivo.yaml`
+2. `~/.bip38cli.yaml`
+3. `./bip38cli.yaml`
+4. `/etc/bip38cli/config.yaml`
+
+Valores padrão embutidos no binário:
 
 ```yaml
-# Configurações de comportamento padrão
-verbose: false
-compressed: true
-
-# Preferências de formato de saída
+defaults:
+  compressed: true
 output:
-  format: "text"  # text, json
+  format: text
   colors: true
 ```
 
-## O que é BIP38?
+Defina `verbose: true` para exibir o caminho de configuração em uso e mensagens adicionais.
 
-BIP38 é um Bitcoin Improvement Proposal que define um método para criptografar chaves privadas Bitcoin com uma senha. Isso permite:
+## Documentação
 
-1. **Armazenamento protegido por senha** - Chaves podem ser armazenadas ou transmitidas com segurança
-2. **Segurança de dois fatores** - Usando códigos intermediários para geração segura de chaves
-3. **Formato padronizado** - Compatível com outras implementações BIP38
-4. **Backups seguros** - Chaves criptografadas podem ser armazenadas em múltiplos locais
-
-## Melhores Práticas de Segurança
-
-- **Use senhas fortes** (15+ caracteres ou frases de 6+ palavras)
-- **Sempre teste a descriptografia** antes de armazenar chaves criptografadas
-- **Use ambientes offline** para operações críticas
-- **Armazene senhas separadamente** das chaves criptografadas
-- **Faça múltiplos backups** de chaves criptografadas
-- **Verifique endereços** após descriptografia
-
-- **Nunca use senhas fracas** (123456, password, etc.)
-- **Nunca armazene senhas com chaves criptografadas**
-- **Nunca use em computadores infectados**
-- **Nunca compartilhe chaves privadas não criptografadas**
-
-## Exemplos
-
-### Backup Seguro de Carteira
-```bash
-# 1. Exporte a chave privada da sua carteira
-# 2. Criptografe com senha forte
-bip38cli encrypt --compressed
-# 3. Teste a descriptografia imediatamente
-bip38cli decrypt --show-address
-# 4. Armazene chave criptografada e senha separadamente
-```
-
-### Processamento em Lote
-```bash
-# Criptografar múltiplas chaves de arquivo
-while read -r key; do
-    echo "Processando: $key"
-    echo "$key" | bip38cli encrypt
-done < chaves_privadas.txt
-```
-
-### Herança Digital
-```bash
-# Criar backup criptografado para família
-bip38cli encrypt 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
-# Use senha memorável que a família possa deduzir
-# Deixe instruções claras para descriptografia
-```
+- [Tutorial em inglês](docs/TUTORIAL-EN.md)
+- [Tutorial em português](docs/TUTORIAL-PT.md)
 
 ## Desenvolvimento
 
-### Requisitos
-- Go 1.24.0 ou posterior
-- Make
+Comandos úteis na raiz do repositório:
 
-### Compilação
 ```bash
-# Instalar dependências
-make deps
-
-# Executar testes
-make test
-
-# Compilar binário
-make build
-
-# Executar todas as verificações
-make all
+make build      # Compila o binário em bin/bip38cli
+make fmt        # Formata os arquivos Go com gofmt
+make test       # Executa go test ./...
+make lint       # Roda golangci-lint (se disponível)
+make clean      # Remove artefatos de build
 ```
 
-### Testes
-```bash
-# Executar testes com cobertura
-make test-coverage
+O módulo Go reside em `github.com/carlosrabelo/bip38cli/core`. Os testes do domínio BIP38 executam derivação scrypt real e podem levar alguns segundos.
 
-# Executar linting
-make lint
+## Notas de Segurança
 
-# Benchmark de performance
-go test -bench=. ./internal/bip38/
-```
+- Use senhas fortes (15+ caracteres ou frases longas)
+- Teste a descriptografia imediatamente após criptografar, antes de armazenar backups
+- Mantenha senhas separadas das chaves criptografadas e evite ferramentas de cópia em rede
+- Prefira máquinas isoladas (air-gapped) para grandes volumes ou carteiras de alto valor
+- Trate códigos intermediários com o mesmo cuidado das chaves criptografadas
 
-## Referência da API
+## Doações
 
-### Códigos de Saída
-- `0` - Sucesso
-- `1` - Erro geral
-- `2` - Argumentos inválidos
-- `3` - Falha na criptografia/descriptografia
-- `4` - Formato de chave inválido
+Se o BIP38CLI é útil para você, considere apoiar o desenvolvimento:
 
-### Variáveis de Ambiente
-- `BIP38CLI_CONFIG` - Caminho do arquivo de configuração
-- `BIP38CLI_VERBOSE` - Habilitar saída detalhada
-- `NO_COLOR` - Desabilitar saída colorida
-
-## Contribuindo
-
-1. Fork o repositório
-2. Crie uma branch de funcionalidade (`git checkout -b feature/funcionalidade-incrivel`)
-3. Faça suas alterações
-4. Adicione testes para nova funcionalidade
-5. Execute `make all` para verificar se tudo funciona
-6. Commit suas alterações (`git commit -m 'Adicionar funcionalidade incrível'`)
-7. Push para a branch (`git push origin feature/funcionalidade-incrivel`)
-8. Abra um Pull Request
+**BTC**: `bc1qw2raw7urfuu2032uyyx9k5pryan5gu6gmz6exm`  
+**ETH**: `0xdb4d2517C81bE4FE110E223376dD9B23ca3C762E`  
+**SOL**: `A3tNpXSb8rHw2PJYALQeZzwvR4pRWk72YwJdeXGKmS1q`  
+**TRX**: `TTznF3FeDCqLmL5gx8GingeahUyLsJJ68A`
 
 ## Licença
 
-Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## Agradecimentos
-
-- Construído com [BTCSuite](https://github.com/btcsuite) - a biblioteca Bitcoin padrão da indústria para Go
-- Usa [Cobra](https://github.com/spf13/cobra) para framework CLI
-- Implementa a [especificação BIP38](https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki)
-
-## Suporte
-
-- **Documentação**: [Tutoriais completos](TUTORIAL-PT.md)
-- **Problemas**: [GitHub Issues](https://github.com/carlosrabelo/bip38cli/issues)
-- **Discussões**: [GitHub Discussions](https://github.com/carlosrabelo/bip38cli/discussions)
-
----
-
-**⚠️ Importante**: Este software lida com chaves privadas Bitcoin. Sempre teste com pequenas quantias primeiro e certifique-se de entender os riscos. Os autores não são responsáveis por qualquer perda de fundos.
+Distribuído sob a [Licença MIT](LICENSE).

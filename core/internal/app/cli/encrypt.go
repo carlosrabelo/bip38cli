@@ -10,6 +10,8 @@ import (
 
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -44,9 +46,17 @@ func init() {
 }
 
 func runEncrypt(cmd *cobra.Command, args []string) error {
-	// Validate when flags fight each other
+	// Reinitialize logger with verbose setting if needed
+	if isVerbose(cmd) {
+		logger.Init(true)
+	}
+
+	logger.Debug("Starting encryption process")
+
+	// Validate when flags conflict with each other
 	if forceCompressed && forceUncompressed {
-		return fmt.Errorf("cannot specify both --compressed and --uncompressed")
+		logger.Error("Both compressed and uncompressed flags specified")
+		return errors.NewValidationError("cannot specify both --compressed and --uncompressed", nil)
 	}
 
 	// Grab private key value
@@ -71,10 +81,13 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 	// Parse WIF so we know key format
 	wif, err := btcutil.DecodeWIF(wifStr)
 	if err != nil {
-		return fmt.Errorf("invalid WIF private key: %v", err)
+		logger.WithError(err).Error("Failed to decode WIF private key")
+		return errors.NewValidationError("invalid WIF private key", err).
+			WithContext("wif", wifStr)
 	}
+	logger.WithField("compressed", wif.CompressPubKey).Debug("Successfully decoded WIF private key")
 
-	// Apply compression flags when user ask
+	// Apply compression flags when user requests
 	if forceCompressed {
 		wif.CompressPubKey = true
 	} else if forceUncompressed {
@@ -92,7 +105,7 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("passphrase cannot be empty")
 	}
 
-	// Confirm passphrase second time to avoid typo
+	// Confirm passphrase a second time to avoid typos
 	confirmPassphrase, err := getPassphrase("Confirm passphrase: ")
 	if err != nil {
 		return fmt.Errorf("failed to read passphrase confirmation: %v", err)
@@ -106,13 +119,15 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 	// Encrypt the key using domain logic
 	encryptedKey, err := bip38.EncryptKey(wif, passphrase)
 	if err != nil {
-		return fmt.Errorf("encryption failed: %v", err)
+		logger.WithError(err).Error("Failed to encrypt private key")
+		return errors.NewCryptoError("encryption failed", err)
 	}
 
-	// Output result for user view
+	logger.Info("Successfully encrypted private key")
+	// Output result for user to view
 	fmt.Printf("Encrypted key: %s\n", encryptedKey)
 
-	// Show extra info while verbose stay on
+	// Show extra info while verbose mode is on
 	if isVerbose(cmd) {
 		compression := "uncompressed"
 		if wif.CompressPubKey {
@@ -130,7 +145,7 @@ func getPassphrase(prompt string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println() // Print newline after hidden input so shell not messy
+	fmt.Println() // Print newline after hidden input so shell isn't messy
 	return bytePassword, nil
 }
 
@@ -139,7 +154,7 @@ func secureZero(buf []byte) {
 	if buf == nil {
 		return
 	}
-	for i := range buf {
+	for i := 0; i < len(buf); i++ {
 		buf[i] = 0
 	}
 }

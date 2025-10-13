@@ -30,7 +30,7 @@ help: ## Show go-specific targets
 		| sort \
 		| awk 'BEGIN {FS = ":.*## "} {printf "  %-15s %s\n", $$1, $$2}'
 
-install: ## Install binary via scripts/install.sh
+install: build ## Install binary via scripts/install.sh
 	@../scripts/install.sh --user
 
 lint: ## Run golangci-lint when available

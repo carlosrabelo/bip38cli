@@ -24,22 +24,31 @@ const (
 
 var (
 	// Regex used to check BIP38 string look correct
-	bip38Regex = regexp.MustCompile(`^6P[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{56}$`)
+	bip38Regex        = regexp.MustCompile(`^6P[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{56}$`)
+	supportedNetworks = []*chaincfg.Params{
+		&chaincfg.MainNetParams,
+		&chaincfg.TestNet3Params,
+		&chaincfg.RegressionNetParams,
+		&chaincfg.SimNetParams,
+		&chaincfg.SigNetParams,
+	}
 )
 
-// EncryptedKey represent a BIP38 encrypted private key record
+// EncryptedKey represents a BIP38 encrypted private key record with its properties.
 type EncryptedKey struct {
-	Key        string
-	Compressed bool
-	ECMultiply bool
+	Key        string // The encrypted key in base58 format
+	Compressed bool   // Whether the original key was compressed
+	ECMultiply bool   // Whether EC multiplication mode was used
 }
 
-// IsBIP38Format check if given string look like BIP38 format
+// IsBIP38Format checks if the given string matches the BIP38 format pattern.
+// Returns true if the string appears to be a valid BIP38 encrypted key.
 func IsBIP38Format(key string) bool {
 	return bip38Regex.MatchString(key)
 }
 
-// DecryptKey unwrap one BIP38 encrypted private key using given passphrase bytes
+// DecryptKey decrypts a BIP38 encrypted private key using the given passphrase.
+// Returns the decrypted WIF (Wallet Import Format) private key or an error if decryption fails.
 func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 	if !IsBIP38Format(encryptedKey) {
 		return nil, errors.New("invalid BIP38 format")
@@ -51,7 +60,7 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 		return nil, errors.New("invalid encrypted key length")
 	}
 
-	// Check magic byte stay expected value
+	// Check magic byte matches expected value
 	if decoded[0] != bip38Magic {
 		return nil, errors.New("invalid magic byte")
 	}
@@ -119,16 +128,8 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 	// Combine decrypted halves back into private key bytes
 	privateKeyBytes := append(decrypted1, decrypted2...)
 
-	// Create private key object from bytes
-	privKey, _ := btcec.PrivKeyFromBytes(privateKeyBytes)
-
-	// Create WIF wrapper for private key
-	wif, err := btcutil.NewWIF(privKey, &chaincfg.MainNetParams, compressed)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create WIF: %v", err)
-	}
-
 	// Verify by checking address hash matches salt
+	privKey, _ := btcec.PrivKeyFromBytes(privateKeyBytes)
 	pubKey := privKey.PubKey()
 	var pubKeyBytes []byte
 	if compressed {
@@ -137,18 +138,30 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 		pubKeyBytes = pubKey.SerializeUncompressed()
 	}
 
-	// Create address and verify checksum again
-	addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, &chaincfg.MainNetParams)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create address: %v", err)
+	var matchedNet *chaincfg.Params
+	for _, params := range supportedNetworks {
+		addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, params)
+		if err != nil {
+			continue
+		}
+
+		address := addressPubKey.EncodeAddress()
+		hash = sha256.Sum256([]byte(address))
+		hash2 = sha256.Sum256(hash[:])
+
+		if bytesEqual(hash2[:4], addressHash) {
+			matchedNet = params
+			break
+		}
 	}
 
-	address := addressPubKey.EncodeAddress()
-	hash = sha256.Sum256([]byte(address))
-	hash2 = sha256.Sum256(hash[:])
-
-	if !bytesEqual(hash2[:4], addressHash) {
+	if matchedNet == nil {
 		return nil, errors.New("incorrect passphrase")
+	}
+
+	wif, err := btcutil.NewWIF(privKey, matchedNet, compressed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create WIF: %v", err)
 	}
 
 	return wif, nil
@@ -168,7 +181,12 @@ func EncryptKey(wif *btcutil.WIF, passphrase []byte) (string, error) {
 		pubKeyBytes = pubKey.SerializeUncompressed()
 	}
 
-	addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, &chaincfg.MainNetParams)
+	netParams, err := networkFromWIF(wif)
+	if err != nil {
+		return "", err
+	}
+
+	addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, netParams)
 	if err != nil {
 		return "", fmt.Errorf("failed to create address: %v", err)
 	}
@@ -196,7 +214,7 @@ func EncryptKey(wif *btcutil.WIF, passphrase []byte) (string, error) {
 		xoredKey[i] = privKeyBytes[i] ^ derivedhalf1[i]
 	}
 
-	// Encrypt with AES ECB even if library no offer directly
+	// Encrypt with AES ECB (library doesn't expose this mode directly)
 	block, err := aes.NewCipher(derivedhalf2)
 	if err != nil {
 		return "", fmt.Errorf("failed to create AES cipher: %v", err)
@@ -218,7 +236,7 @@ func EncryptKey(wif *btcutil.WIF, passphrase []byte) (string, error) {
 	result = append(result, addressHash...)
 	result = append(result, encrypted...)
 
-	// Add checksum just like BIP38 spec request
+	// Add checksum as required by BIP38 spec
 	hash = sha256.Sum256(result)
 	hash2 = sha256.Sum256(hash[:])
 	result = append(result, hash2[:4]...)
@@ -231,7 +249,7 @@ func bytesEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := range a {
+	for i := 0; i < len(a); i++ {
 		if a[i] != b[i] {
 			return false
 		}
@@ -239,7 +257,16 @@ func bytesEqual(a, b []byte) bool {
 	return true
 }
 
-// ECB mode helper because stdlib no expose this cipher mode
+func networkFromWIF(wif *btcutil.WIF) (*chaincfg.Params, error) {
+	for _, params := range supportedNetworks {
+		if wif.IsForNet(params) {
+			return params, nil
+		}
+	}
+	return nil, errors.New("unsupported WIF network")
+}
+
+// ECB mode helper because stdlib doesn't expose this cipher mode
 type ecb struct {
 	b         cipher.Block
 	blockSize int

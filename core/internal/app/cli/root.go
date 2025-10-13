@@ -2,20 +2,17 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/carlosrabelo/bip38cli/core/internal/infra/config"
+	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
-	cfgFile   string
 	version   string
 	buildTime string
 )
 
-// rootCmd stay as base command when user no pass subcommands
+// rootCmd serves as base command when user doesn't pass subcommands
 var rootCmd = &cobra.Command{
 	Use:   "bip38cli",
 	Short: "A CLI tool for BIP38 Bitcoin private key encryption",
@@ -30,35 +27,22 @@ Features:
 	Version: getVersionString(),
 }
 
-// Execute attach every child command and run root command
+// Execute attaches all child commands to the root command and executes it.
+// This is the main entry point for the CLI application.
 func Execute() error {
 	return rootCmd.Execute()
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Global flags for config and noise level
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.bip38cli.yaml)")
+	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
 
-	// Bind flags to viper for shared usage
-	viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
+	// Initialize logger with default settings
+	logger.Init(false)
 }
 
-// initConfig read config file and ENV variables when present
-func initConfig() {
-	usedConfig, err := config.Setup(viper.GetViper(), cfgFile)
-	cobra.CheckErr(err)
-
-	viper.AutomaticEnv()
-
-	if usedConfig != "" && viper.GetBool("verbose") {
-		fmt.Fprintln(os.Stderr, "Using config file:", usedConfig)
-	}
-}
-
-// SetVersionInfo set the version information for the CLI
+// SetVersionInfo sets the version information for the CLI.
+// This should be called before Execute() to ensure version info is available.
 func SetVersionInfo(v, bt string) {
 	version = v
 	buildTime = bt

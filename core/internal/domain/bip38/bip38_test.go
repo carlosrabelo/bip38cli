@@ -73,6 +73,12 @@ func TestEncryptDecryptRoundtrip(t *testing.T) {
 			passphrase: "TestingOneTwoThree",
 			compressed: true,
 		},
+		{
+			name:       "testnet compressed key",
+			wifString:  "cMai6KJ8sHnNejZctqjiYdg2KSLeiaKcuTbZQrJNEjmMY5JQw6eP",
+			passphrase: "TestingOneTwoThree",
+			compressed: true,
+		},
 	}
 
 	if !testing.Short() {
