@@ -148,6 +148,53 @@ func TestIsVerbose(t *testing.T) {
 	}
 }
 
+func TestOutputFormat(t *testing.T) {
+	cmd := &cobra.Command{Use: "root"}
+	cmd.Flags().String("output-format", "text", "")
+
+	// Test default (output-format should be "text")
+	if outputFormat(cmd) != "text" {
+		t.Fatalf("expected output-format to be 'text' by default, got %q", outputFormat(cmd))
+	}
+
+	// Test with output-format flag set to json
+	if err := cmd.Flags().Set("output-format", "json"); err != nil {
+		t.Fatalf("failed to set output-format flag: %v", err)
+	}
+
+	if outputFormat(cmd) != "json" {
+		t.Fatalf("expected output-format to be 'json' when flag is set, got %q", outputFormat(cmd))
+	}
+}
+
+func TestIsCompressed(t *testing.T) {
+	cmd := &cobra.Command{Use: "root"}
+	cmd.Flags().Bool("compressed", true, "")
+
+	// Test default (compressed should be true)
+	if !isCompressed(cmd) {
+		t.Fatal("expected compressed to be true by default")
+	}
+
+	// Test with compressed flag set to false
+	if err := cmd.Flags().Set("compressed", "false"); err != nil {
+		t.Fatalf("failed to set compressed flag: %v", err)
+	}
+
+	if isCompressed(cmd) {
+		t.Fatal("expected compressed to be false when flag is set to false")
+	}
+
+	// Test with compressed flag set to true
+	if err := cmd.Flags().Set("compressed", "true"); err != nil {
+		t.Fatalf("failed to set compressed flag: %v", err)
+	}
+
+	if !isCompressed(cmd) {
+		t.Fatal("expected compressed to be true when flag is set to true")
+	}
+}
+
 func TestRunDecryptWithStubbedPassphrase(t *testing.T) {
 	origReadPassword := readPassword
 	defer func() { readPassword = origReadPassword }()
