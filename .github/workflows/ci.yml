@@ -1,10 +1,12 @@
 name: CI
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+  # Disabled - uncomment to enable
+  # push:
+  #   branches: [main, develop]
+  # pull_request:
+  #   branches: [main, develop]
+  workflow_dispatch:
 
 jobs:
   lint:

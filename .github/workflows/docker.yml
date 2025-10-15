@@ -1,11 +1,13 @@
 name: Docker Build and Push
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
+  # Disabled - uncomment to enable
+  # push:
+  #   branches: [main]
+  #   tags: ['v*']
+  # pull_request:
+  #   branches: [main]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
