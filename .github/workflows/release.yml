@@ -1,31 +1,13 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
-        required: true
-        type: string
-      prerelease:
-        description: 'Is this a prerelease?'
-        required: false
-        type: boolean
-        default: false
   push:
     tags:
       - 'v*'
 
 jobs:
-  prepare:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      release_type: ${{ steps.meta.outputs.release_type }}
-      build_time: ${{ steps.meta.outputs.build_time }}
-      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
-      tag_name: ${{ steps.meta.outputs.tag_name }}
-      release_name: ${{ steps.meta.outputs.release_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,39 +17,21 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Generate metadata
-        id: meta
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
-            TAG_NAME="$VERSION"
-            RELEASE_NAME="BIP38CLI $VERSION"
-          else
-            VERSION="${GITHUB_REF#refs/tags/}"
-            IS_PRERELEASE="false"
-            TAG_NAME="$VERSION"
-            RELEASE_NAME="BIP38CLI $VERSION"
-          fi
-          
-          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          RELEASE_TYPE="release"
-          
-          if [[ "$IS_PRERELEASE" == "true" ]]; then
-            RELEASE_TYPE="prerelease"
-          fi
-          
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
-          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
-          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
-          
-          echo "Version: $VERSION"
-          echo "Release Type: $RELEASE_TYPE"
-          echo "Build Time: $BUILD_TIME"
-          echo "Is Prerelease: $IS_PRERELEASE"
+          mkdir -p dist
+          cd core
+          go build -ldflags "-X main.version=${{ steps.version.outputs.VERSION }}" -o ../dist/bip38cli ./cmd/bip38cli
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/bip38cli
+          generate_release_notes: true
 
   build:
     needs: prepare
