@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -92,6 +93,9 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 		wif.CompressPubKey = true
 	} else if forceUncompressed {
 		wif.CompressPubKey = false
+	} else {
+		// Use global compressed flag when no specific flag is set
+		wif.CompressPubKey = isCompressed(cmd)
 	}
 
 	// Ask hidden passphrase from user
@@ -124,16 +128,33 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 	}
 
 	logger.Info("Successfully encrypted private key")
-	// Output result for user to view
-	fmt.Printf("Encrypted key: %s\n", encryptedKey)
 
-	// Show extra info while verbose mode is on
-	if isVerbose(cmd) {
-		compression := "uncompressed"
-		if wif.CompressPubKey {
-			compression = "compressed"
+	// Prepare output data
+	result := map[string]interface{}{
+		"encrypted_key": encryptedKey,
+		"compressed":    wif.CompressPubKey,
+	}
+
+	// Output based on format
+	switch outputFormat(cmd) {
+	case "json":
+		jsonOutput, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %v", err)
 		}
-		fmt.Printf("Key format: %s\n", compression)
+		fmt.Println(string(jsonOutput))
+	default:
+		// Text output
+		fmt.Printf("Encrypted key: %s\n", encryptedKey)
+
+		// Show extra info while verbose mode is on
+		if isVerbose(cmd) {
+			compression := "uncompressed"
+			if wif.CompressPubKey {
+				compression = "compressed"
+			}
+			fmt.Printf("Key format: %s\n", compression)
+		}
 	}
 
 	return nil

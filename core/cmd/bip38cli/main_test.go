@@ -113,16 +113,16 @@ func TestMainLoggerInitialization(t *testing.T) {
 	assert.True(t, true) // Logger is initialized in main
 }
 
-func TestMainConfigLoading(t *testing.T) {
-	// Test that config loading works in main
+func TestMainOutputFormatFlag(t *testing.T) {
+	// Test that output format flag works in main
 	// Save original args
 	originalArgs := os.Args
 	defer func() { os.Args = originalArgs }()
 
-	// Test with config flag
-	os.Args = []string{"bip38cli", "--config", "/nonexistent/config.yaml"}
+	// Test with output format flag
+	os.Args = []string{"bip38cli", "--output-format", "json", "--help"}
 
-	// Should handle missing config gracefully
+	// Should handle output format flag gracefully
 	assert.True(t, true) // Placeholder test
 }
 
@@ -204,29 +204,6 @@ func TestMainGracefulShutdown(t *testing.T) {
 
 	// Graceful shutdown is handled by the CLI framework
 	assert.True(t, true)
-}
-
-func TestMainEnvironmentVariables(t *testing.T) {
-	// Test that main respects environment variables
-	// Save original args and env
-	originalArgs := os.Args
-	defer func() { os.Args = originalArgs }()
-
-	// Test with various environment variables
-	originalEnv := os.Getenv("BIP38CLI_CONFIG")
-	defer func() {
-		if originalEnv != "" {
-			os.Setenv("BIP38CLI_CONFIG", originalEnv)
-		} else {
-			os.Unsetenv("BIP38CLI_CONFIG")
-		}
-	}()
-
-	os.Setenv("BIP38CLI_CONFIG", "/test/config.yaml")
-	os.Args = []string{"bip38cli"}
-
-	// Should respect environment variables
-	assert.True(t, true) // Placeholder test
 }
 
 func TestMainConcurrency(t *testing.T) {
