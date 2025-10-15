@@ -2,9 +2,19 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a prerelease?'
+        required: false
+        type: boolean
+        default: false
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 jobs:
   prepare:
@@ -12,150 +22,204 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
       release_type: ${{ steps.meta.outputs.release_type }}
-      commit_short: ${{ steps.meta.outputs.commit_short }}
+      build_time: ${{ steps.meta.outputs.build_time }}
+      is_prerelease: ${{ steps.meta.outputs.is_prerelease }}
       tag_name: ${{ steps.meta.outputs.tag_name }}
       release_name: ${{ steps.meta.outputs.release_name }}
-      prerelease: ${{ steps.meta.outputs.prerelease }}
-      build_time: ${{ steps.meta.outputs.build_time }}
-    steps:
-      - name: Prepare metadata
-        id: meta
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF_NAME: ${{ github.ref_name }}
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          commit_short=$(echo "$GITHUB_SHA" | cut -c1-7)
-          build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            version="$commit_short"
-            release_type="manual"
-            tag_name="test-${commit_short}"
-            release_name="bip38cli test ${commit_short}"
-            prerelease="true"
-          else
-            version="$REF_NAME"
-            tag_name="$version"
-            release_name="bip38cli ${version}"
-            prerelease="false"
-            release_type="tag"
-          fi
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "release_type=$release_type" >> "$GITHUB_OUTPUT"
-          echo "commit_short=$commit_short" >> "$GITHUB_OUTPUT"
-          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
-          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
-          echo "build_time=$build_time" >> "$GITHUB_OUTPUT"
-
-  build:
-    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
-    runs-on: ubuntu-latest
-    needs: prepare
-    strategy:
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            archive: tar.gz
-            ext: ""
-          - goos: linux
-            goarch: arm64
-            archive: tar.gz
-            ext: ""
-          - goos: darwin
-            goarch: amd64
-            archive: tar.gz
-            ext: ""
-          - goos: darwin
-            goarch: arm64
-            archive: tar.gz
-            ext: ""
-          - goos: windows
-            goarch: amd64
-            archive: zip
-            ext: .exe
-          - goos: windows
-            goarch: arm64
-            archive: zip
-            ext: .exe
-    env:
-      VERSION: ${{ needs.prepare.outputs.version }}
-      BUILD_TIME: ${{ needs.prepare.outputs.build_time }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - name: Setup Go
+        uses: actions/setup-go@v4
         with:
-          go-version-file: core/go.mod
+          go-version: '1.24'
+
+      - name: Generate metadata
+        id: meta
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+            TAG_NAME="$VERSION"
+            RELEASE_NAME="BIP38CLI $VERSION"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+            IS_PRERELEASE="false"
+            TAG_NAME="$VERSION"
+            RELEASE_NAME="BIP38CLI $VERSION"
+          fi
+          
+          BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          RELEASE_TYPE="release"
+          
+          if [[ "$IS_PRERELEASE" == "true" ]]; then
+            RELEASE_TYPE="prerelease"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+          echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "release_name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          
+          echo "Version: $VERSION"
+          echo "Release Type: $RELEASE_TYPE"
+          echo "Build Time: $BUILD_TIME"
+          echo "Is Prerelease: $IS_PRERELEASE"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Build binary
-        run: |
-          mkdir -p bin
-          output="bip38cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} CGO_ENABLED=0 \
-            go build -C core -trimpath -tags netgo \
-            -ldflags "-s -w -X main.version=${VERSION} -X main.buildTime=${BUILD_TIME}" \
-            -o "../bin/${output}" ./cmd/bip38cli
-
-      - name: Package artifact
-        id: package
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          BUILD_TIME: ${{ needs.prepare.outputs.build_time }}
         run: |
           mkdir -p dist
-          output="bip38cli-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
-          archive="bip38cli-${VERSION}-${{ matrix.goos }}-${{ matrix.goarch }}"
-          cp "bin/${output}" "dist/${output}"
-          if [ "${{ matrix.archive }}" = "zip" ]; then
-            (cd dist && zip "${archive}.zip" "${output}")
-            asset="dist/${archive}.zip"
-          else
-            (cd dist && tar -czf "${archive}.tar.gz" "${output}")
-            asset="dist/${archive}.tar.gz"
+          
+          BINARY_NAME="bip38cli"
+          if [[ "$GOOS" == "windows" ]]; then
+            BINARY_NAME="bip38cli.exe"
           fi
-          echo "asset=${asset}" >> "$GITHUB_OUTPUT"
+          
+          cd core
+          go build -ldflags "-X main.version=$VERSION -X main.buildTime=$BUILD_TIME" \
+            -o "../dist/${BINARY_NAME}" \
+            ./cmd/bip38cli
+
+      - name: Create archive
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          cd dist
+          
+          BINARY_NAME="bip38cli"
+          if [[ "$GOOS" == "windows" ]]; then
+            BINARY_NAME="bip38cli.exe"
+            ARCHIVE_NAME="bip38cli-${VERSION}-${GOOS}-${GOARCH}.zip"
+            zip "$ARCHIVE_NAME" "$BINARY_NAME"
+          else
+            ARCHIVE_NAME="bip38cli-${VERSION}-${GOOS}-${GOARCH}.tar.gz"
+            tar -czf "$ARCHIVE_NAME" "$BINARY_NAME"
+          fi
+          
+          echo "archive_name=$ARCHIVE_NAME" >> $GITHUB_ENV
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: bip38cli-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: ${{ steps.package.outputs.asset }}
-          if-no-files-found: error
+          path: dist/${{ env.archive_name }}
 
   release:
+    needs: [prepare, build]
     runs-on: ubuntu-latest
-    needs:
-      - prepare
-      - build
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
         with:
-          path: release-assets
-          merge-multiple: true
+          path: artifacts
 
-      - name: Show assets
-        run: ls -R release-assets
-
-      - name: Create GitHub release
+      - name: Create release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.prepare.outputs.tag_name }}
           name: ${{ needs.prepare.outputs.release_name }}
-          prerelease: ${{ needs.prepare.outputs.prerelease }}
-          draft: false
-          files: release-assets/**
           body: |
-            ## Release Summary
-
-            - Version: `${{ needs.prepare.outputs.version }}`
-            - Release type: `${{ needs.prepare.outputs.release_type }}`
-            - Commit: `${{ github.sha }}`
-            - Short hash: `${{ needs.prepare.outputs.commit_short }}`
-
-            Generated via GitHub Actions with multi-platform artifacts.
+            ## BIP38CLI ${{ needs.prepare.outputs.version }}
+            
+            A command-line tool for BIP38 Bitcoin private key encryption.
+            
+            ### Downloads
+            Choose the appropriate binary for your platform:
+            
+            - **Linux (amd64)**: `bip38cli-${{ needs.prepare.outputs.version }}-linux-amd64.tar.gz`
+            - **Linux (arm64)**: `bip38cli-${{ needs.prepare.outputs.version }}-linux-arm64.tar.gz`
+            - **macOS (Intel)**: `bip38cli-${{ needs.prepare.outputs.version }}-darwin-amd64.tar.gz`
+            - **macOS (Apple Silicon)**: `bip38cli-${{ needs.prepare.outputs.version }}-darwin-arm64.tar.gz`
+            - **Windows (amd64)**: `bip38cli-${{ needs.prepare.outputs.version }}-windows-amd64.zip`
+            
+            ### Installation
+            
+            **Linux/macOS:**
+            ```bash
+            # Download and extract
+            wget https://github.com/carlosrabelo/bip38cli/releases/download/${{ needs.prepare.outputs.version }}/bip38cli-${{ needs.prepare.outputs.version }}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
+            tar -xzf bip38cli-${{ needs.prepare.outputs.version }}-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m).tar.gz
+            
+            # Install to /usr/local/bin
+            sudo mv bip38cli /usr/local/bin/
+            
+            # Or install to user directory
+            mkdir -p ~/.local/bin
+            mv bip38cli ~/.local/bin/
+            export PATH="$HOME/.local/bin:$PATH"
+            ```
+            
+            **Windows:**
+            ```powershell
+            # Download and extract
+            Invoke-WebRequest -Uri "https://github.com/carlosrabelo/bip38cli/releases/download/${{ needs.prepare.outputs.version }}/bip38cli-${{ needs.prepare.outputs.version }}-windows-amd64.zip" -OutFile "bip38cli.zip"
+            Expand-Archive -Path "bip38cli.zip" -DestinationPath "."
+            
+            # Add to PATH or move to desired location
+            ```
+            
+            ### Verification
+            
+            ```bash
+            bip38cli --version
+            # Expected output: bip38cli ${{ needs.prepare.outputs.version }} (built: ${{ needs.prepare.outputs.build_time }})
+            ```
+            
+            ### Changelog
+            
+            ${{ needs.prepare.outputs.release_type == 'prerelease' && 'This is a prerelease version for testing purposes.' || 'Stable release with the latest features and bug fixes.' }}
+            
+            ---
+            
+            Build time: ${{ needs.prepare.outputs.build_time }}
+          draft: false
+          prerelease: ${{ needs.prepare.outputs.is_prerelease }}
+          files: |
+            artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
