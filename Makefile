@@ -6,7 +6,7 @@ GO             ?= go
 .PHONY: build clean fmt help install lint test uninstall verify
 
 build: ## Build CLI binary
-	@$(MAKE) -C $(CORE_DIR) build
+	@$(MAKE) --silent -C $(CORE_DIR) build
 
 clean: ## Clean build artifacts from core/
 	@$(MAKE) -C $(CORE_DIR) clean
@@ -35,7 +35,7 @@ lint: ## Run golangci-lint via core/
 	@$(MAKE) -C $(CORE_DIR) lint
 
 test: ## Run go test ./... in core/
-	@$(MAKE) -C $(CORE_DIR) test
+	@$(MAKE) --silent -C $(CORE_DIR) test
 
 install: ## Install CLI system-wide
 	@$(MAKE) -C $(CORE_DIR) install

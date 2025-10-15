@@ -9,6 +9,7 @@ A focused command-line application that implements the [BIP38](https://github.co
 ## Highlights
 
 - Encrypt and decrypt Wallet Import Format (WIF) keys using spec-compliant BIP38 routines
+- Generate new Bitcoin private keys in WIF format with corresponding addresses
 - Generate and validate intermediate codes for two-factor key creation flows
 - Zero out passphrase buffers as soon as possible to reduce memory exposure
 - Hidden terminal input for passphrases with compression toggles and verbose insights
@@ -121,6 +122,22 @@ bip38cli decrypt --show-address 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxE
 bip38cli decrypt --show-address --output-format json 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
 ```
 
+### Generate New Keys
+
+```bash
+# Generate a new compressed Bitcoin private key
+bip38cli generate
+
+# Generate uncompressed key (legacy format)
+bip38cli generate --uncompressed
+
+# Show corresponding Bitcoin address
+bip38cli generate --show-address
+
+# JSON output with address
+bip38cli generate --show-address --output-format json
+```
+
 ### Work with Intermediate Codes
 
 ```bash
@@ -157,6 +174,7 @@ Global flags:
 - `--uncompressed`: Use uncompressed public key format (overrides --compressed)
 
 Command-specific flags:
+- `generate --show-address`: Show the Bitcoin address for the generated key
 - `encrypt --compressed`: Force compressed public key format
 - `encrypt --uncompressed`: Force uncompressed public key format  
 - `decrypt --show-address`: Show the Bitcoin address for the decrypted key
@@ -167,6 +185,14 @@ Command-specific flags:
 ### Examples with JSON Output
 
 ```bash
+# Generate with JSON output
+bip38cli generate --output-format json
+# Output: {"private_key": "KwYg...", "compressed": true}
+
+# Generate with JSON output and address
+bip38cli generate --show-address --output-format json
+# Output: {"private_key": "KwYg...", "compressed": true, "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"}
+
 # Encrypt with JSON output
 bip38cli encrypt --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
 # Output: {"encrypted_key": "6PRV...", "compressed": true}

@@ -10,7 +10,6 @@ LDFLAGS       := -s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME
 .PHONY: build clean fmt help install lint test uninstall
 
 build: ## Build bip38cli binary with version metadata
-	@echo "Building $(BIN_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	@env GOCACHE=$$(mktemp -d) $(GO) build -trimpath -tags netgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BIN_NAME) ./cmd/bip38cli
 
@@ -38,7 +37,6 @@ lint: ## Run golangci-lint when available
 	@env GOCACHE=$$(mktemp -d) golangci-lint run ./...
 
 test: ## Execute go test ./...
-	@echo "Running go test ./..."
 	@env GOCACHE=$$(mktemp -d) $(GO) test ./...
 
 uninstall: ## Remove installed binary via scripts/uninstall.sh

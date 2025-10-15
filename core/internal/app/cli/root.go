@@ -21,6 +21,7 @@ for encrypting and decrypting Bitcoin private keys with passphrases.
 
 Features:
 - Encrypt/decrypt Bitcoin private keys using BIP38 standard
+- Generate new Bitcoin private keys in WIF format
 - Generate intermediate passphrase codes for two-factor encryption
 - Support for both compressed and uncompressed keys
 - Secure passphrase handling`,

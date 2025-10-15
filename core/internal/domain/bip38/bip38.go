@@ -3,6 +3,7 @@ package bip38
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -321,4 +322,50 @@ func (x *ecbDecrypter) CryptBlocks(dst, src []byte) {
 		src = src[x.blockSize:]
 		dst = dst[x.blockSize:]
 	}
+}
+
+// GeneratedKey represents a newly generated Bitcoin private key with its properties.
+type GeneratedKey struct {
+	PrivateKey string `json:"private_key"` // WIF format
+	Address    string `json:"address"`     // Bitcoin address
+	Compressed bool   `json:"compressed"`  // Whether the key is compressed
+}
+
+// GenerateKey creates a new Bitcoin private key using cryptographically secure random generation.
+// Returns the key in WIF format along with its corresponding Bitcoin address.
+func GenerateKey(compressed bool) (*GeneratedKey, error) {
+	// Generate 32 random bytes for the private key
+	privateKeyBytes := make([]byte, 32)
+	_, err := rand.Read(privateKeyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate random bytes: %v", err)
+	}
+
+	// Create private key from bytes
+	privKey, _ := btcec.PrivKeyFromBytes(privateKeyBytes)
+
+	// Create WIF using mainnet parameters (default)
+	wif, err := btcutil.NewWIF(privKey, &chaincfg.MainNetParams, compressed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create WIF: %v", err)
+	}
+
+	// Generate corresponding address
+	var pubKeyBytes []byte
+	if compressed {
+		pubKeyBytes = privKey.PubKey().SerializeCompressed()
+	} else {
+		pubKeyBytes = privKey.PubKey().SerializeUncompressed()
+	}
+
+	addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create address: %v", err)
+	}
+
+	return &GeneratedKey{
+		PrivateKey: wif.String(),
+		Address:    addressPubKey.EncodeAddress(),
+		Compressed: compressed,
+	}, nil
 }
