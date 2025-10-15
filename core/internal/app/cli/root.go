@@ -36,6 +36,8 @@ func Execute() error {
 func init() {
 	// Global flags
 	rootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose output")
+	rootCmd.PersistentFlags().String("output-format", "text", "output format (text|json)")
+	rootCmd.PersistentFlags().BoolP("compressed", "c", true, "use compressed public key format by default")
 
 	// Initialize logger with default settings
 	logger.Init(false)

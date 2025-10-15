@@ -12,7 +12,7 @@ A focused command-line application that implements the [BIP38](https://github.co
 - Generate and validate intermediate codes for two-factor key creation flows
 - Zero out passphrase buffers as soon as possible to reduce memory exposure
 - Hidden terminal input for passphrases with compression toggles and verbose insights
-- Smart configuration discovery: `~/.bip38cli.yaml` → `./bip38cli.yaml` → `/etc/bip38cli/config.yaml`
+- Command-line flags for all configuration options
 - Shell completion generation for bash, zsh, fish, and PowerShell
 
 ## Project Layout
@@ -86,24 +86,52 @@ The helper script keeps Docker artefacts under `docker/` and will build a local 
 ### Encrypt a WIF Key
 
 ```bash
+# Basic encryption
 bip38cli encrypt KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
 # Hidden prompts ask for passphrase twice
 # Result: 6PRV...
+
+# Force compressed format (same as default)
+bip38cli encrypt --compressed KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+
+# Force uncompressed format  
+bip38cli encrypt --uncompressed KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+
+# Use global compressed flag (default: compressed)
+bip38cli encrypt --compressed KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+
+# Use uncompressed by default
+bip38cli encrypt --compressed=false KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+
+# JSON output
+bip38cli encrypt --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
 ```
 
 ### Decrypt an Encrypted Key
 
 ```bash
+# Basic decryption
 bip38cli decrypt 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
 # Hidden prompt asks for passphrase
-# Optional: --show-address to print derived address
+
+# Show derived address
+bip38cli decrypt --show-address 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
+
+# JSON output with address
+bip38cli decrypt --show-address --output-format json 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
 ```
 
 ### Work with Intermediate Codes
 
 ```bash
+# Generate basic intermediate code
+bip38cli intermediate generate
+
 # Generate code with lot/sequence metadata
 bip38cli intermediate generate --lot 123 --sequence 456 --use-lot-sequence
+
+# Generate with JSON output
+bip38cli intermediate generate --output-format json --lot 123 --sequence 456 --use-lot-sequence
 
 # Validate a provided code
 bip38cli intermediate validate passphraseabc123...
@@ -120,24 +148,33 @@ bip38cli completion powershell | Out-String | Invoke-Expression
 
 ## Configuration
 
-BIP38CLI reads configuration using Viper with the following precedence:
+BIP38CLI uses command-line flags for all configuration options. No configuration files are required.
 
-1. `--config /path/to/file.yaml`
-2. `~/.bip38cli.yaml`
-3. `./bip38cli.yaml`
-4. `/etc/bip38cli/config.yaml`
+Global flags:
+- `--verbose, -v`: Enable verbose output for additional diagnostic information
+- `--output-format`: Output format (text|json, default: text)
+- `--compressed, -c`: Use compressed public key format (default: true)
+- `--uncompressed`: Use uncompressed public key format (overrides --compressed)
 
-Default values baked into the binary:
+Command-specific flags:
+- `encrypt --compressed`: Force compressed public key format
+- `encrypt --uncompressed`: Force uncompressed public key format  
+- `decrypt --show-address`: Show the Bitcoin address for the decrypted key
+- `intermediate generate --lot <number>`: Specify lot number (0-1048575)
+- `intermediate generate --sequence <number>`: Specify sequence number (0-4095)
+- `intermediate generate --use-lot-sequence`: Use lot and sequence numbers
 
-```yaml
-defaults:
-  compressed: true
-output:
-  format: text
-  colors: true
+### Examples with JSON Output
+
+```bash
+# Encrypt with JSON output
+bip38cli encrypt --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+# Output: {"encrypted_key": "6PRV...", "compressed": true}
+
+# Decrypt with JSON output and address
+bip38cli decrypt --show-address --output-format json 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
+# Output: {"private_key": "KwYg...", "compressed": true, "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"}
 ```
-
-Set `verbose: true` to display the config path in use and additional diagnostic lines.
 
 ## Documentation
 

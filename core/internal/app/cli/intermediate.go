@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -125,16 +126,38 @@ func runGenerateIntermediate(cmd *cobra.Command, args []string) error {
 	}
 
 	logger.Info("Successfully generated intermediate code")
-	// Output result to user screen
-	fmt.Printf("Intermediate code: %s\n", intermediate)
 
-	// Show extra detail when verbose flag up
-	if isVerbose(cmd) {
-		if lot != nil && seq != nil {
-			fmt.Printf("Lot number: %d\n", *lot)
-			fmt.Printf("Sequence number: %d\n", *seq)
-		} else {
-			fmt.Println("Type: No lot/sequence")
+	// Prepare output data
+	result := map[string]interface{}{
+		"intermediate_code": intermediate,
+		"has_lot_sequence":  lot != nil && seq != nil,
+	}
+
+	if lot != nil && seq != nil {
+		result["lot_number"] = *lot
+		result["sequence_number"] = *seq
+	}
+
+	// Output based on format
+	switch outputFormat(cmd) {
+	case "json":
+		jsonOutput, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %v", err)
+		}
+		fmt.Println(string(jsonOutput))
+	default:
+		// Text output
+		fmt.Printf("Intermediate code: %s\n", intermediate)
+
+		// Show extra detail when verbose flag up
+		if isVerbose(cmd) {
+			if lot != nil && seq != nil {
+				fmt.Printf("Lot number: %d\n", *lot)
+				fmt.Printf("Sequence number: %d\n", *seq)
+			} else {
+				fmt.Println("Type: No lot/sequence")
+			}
 		}
 	}
 

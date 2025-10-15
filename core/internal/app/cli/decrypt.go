@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -94,8 +95,12 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 	}
 
 	logger.Info("Successfully decrypted private key")
-	// Output result for user to confirm
-	fmt.Printf("Private key (WIF): %s\n", wif.String())
+
+	// Prepare output data
+	result := map[string]interface{}{
+		"private_key": wif.String(),
+		"compressed":  wif.CompressPubKey,
+	}
 
 	// Show address when user requests
 	if showAddress {
@@ -112,16 +117,33 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to create address: %v", err)
 		}
 
-		fmt.Printf("Bitcoin address: %s\n", addressPubKey.EncodeAddress())
+		result["address"] = addressPubKey.EncodeAddress()
 	}
 
-	// Show extra info when verbose flag is active
-	if isVerbose(cmd) {
-		compression := "uncompressed"
-		if wif.CompressPubKey {
-			compression = "compressed"
+	// Output based on format
+	switch outputFormat(cmd) {
+	case "json":
+		jsonOutput, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON output: %v", err)
 		}
-		fmt.Printf("Key format: %s\n", compression)
+		fmt.Println(string(jsonOutput))
+	default:
+		// Text output
+		fmt.Printf("Private key (WIF): %s\n", wif.String())
+
+		if showAddress {
+			fmt.Printf("Bitcoin address: %s\n", result["address"])
+		}
+
+		// Show extra info when verbose flag is active
+		if isVerbose(cmd) {
+			compression := "uncompressed"
+			if wif.CompressPubKey {
+				compression = "compressed"
+			}
+			fmt.Printf("Key format: %s\n", compression)
+		}
 	}
 
 	return nil
