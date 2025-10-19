@@ -68,6 +68,39 @@ Intermediate Code:       passphraseabc123def456ghi789jkl012mno345pqr...
 
 ##  Basic Usage
 
+### Generate a New Wallet (WIF)
+
+```bash
+# Create a compressed mainnet key (default)
+bip38cli wallet generate
+
+# Target another network (e.g., testnet) and reveal the address
+bip38cli wallet generate --network testnet --show-address
+
+# Immediately wrap the key with BIP38 encryption (interactive passphrase)
+bip38cli wallet generate --encrypt
+
+# Force legacy P2PKH output (BIP44) or uncompressed keys
+bip38cli wallet generate --address-type bip44 --show-address
+bip38cli wallet generate --uncompressed
+```
+
+Compressed keys produce BIP84 (bech32) addresses. If you deliberately use an
+uncompressed key, the CLI falls back to a legacy P2PKH address.
+
+Use `--address-type bip44` with either `wallet generate` or `wallet inspect`
+when you explicitly need legacy P2PKH output from a compressed key.
+
+### Inspect an Existing WIF
+
+```bash
+# Show network, compression flag and derived address
+bip38cli wallet inspect 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
+
+# JSON output for scripts
+bip38cli wallet inspect --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+```
+
 ### 1. Encrypt a Private Key
 
 **Interactive Mode (More Secure):**
