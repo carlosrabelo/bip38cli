@@ -1,9 +1,11 @@
 package bip38
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 )
 
 func TestIsBIP38Format(t *testing.T) {
@@ -204,6 +206,84 @@ func TestDecryptInvalidKey(t *testing.T) {
 				t.Errorf("Expected error '%s', got: %v", tt.expectedErr, err)
 			}
 		})
+	}
+}
+
+func TestNetworkFromName(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expectedNet *chaincfg.Params
+		expectErr   bool
+	}{
+		{name: "mainnet alias", input: "Main", expectedNet: &chaincfg.MainNetParams},
+		{name: "mainnet default", input: "mainnet", expectedNet: &chaincfg.MainNetParams},
+		{name: "testnet alias", input: "TESTNET", expectedNet: &chaincfg.TestNet3Params},
+		{name: "regtest", input: "regtest", expectedNet: &chaincfg.RegressionNetParams},
+		{name: "simnet", input: "simnet", expectedNet: &chaincfg.SimNetParams},
+		{name: "signet alias", input: "SIG", expectedNet: &chaincfg.SigNetParams},
+		{name: "empty", input: "", expectErr: true},
+		{name: "unsupported", input: "unknown", expectErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			params, err := NetworkFromName(tt.input)
+			if tt.expectErr {
+				if err == nil {
+					t.Fatalf("expected error for input %q", tt.input)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if params != tt.expectedNet {
+				t.Fatalf("expected %s, got %s", tt.expectedNet.Name, params.Name)
+			}
+		})
+	}
+}
+
+func TestGenerateWIF(t *testing.T) {
+	wif, err := GenerateWIF(&chaincfg.MainNetParams, true)
+	if err != nil {
+		t.Fatalf("GenerateWIF returned error: %v", err)
+	}
+
+	if wif == nil {
+		t.Fatal("GenerateWIF returned nil WIF")
+	}
+
+	if !wif.IsForNet(&chaincfg.MainNetParams) {
+		t.Fatal("expected WIF to belong to mainnet")
+	}
+
+	if !wif.CompressPubKey {
+		t.Fatal("expected WIF to be compressed")
+	}
+
+	if strings.TrimSpace(wif.String()) == "" {
+		t.Fatal("expected non-empty WIF string")
+	}
+
+	wifUncompressed, err := GenerateWIF(&chaincfg.TestNet3Params, false)
+	if err != nil {
+		t.Fatalf("GenerateWIF returned error: %v", err)
+	}
+
+	if wifUncompressed.CompressPubKey {
+		t.Fatal("expected WIF to be uncompressed")
+	}
+
+	if !wifUncompressed.IsForNet(&chaincfg.TestNet3Params) {
+		t.Fatal("expected WIF to belong to testnet")
+	}
+
+	if _, err := GenerateWIF(nil, true); err == nil {
+		t.Fatal("expected error when network params are nil")
 	}
 }
 

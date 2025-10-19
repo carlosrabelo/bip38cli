@@ -4,9 +4,11 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
@@ -24,13 +26,38 @@ const (
 
 var (
 	// Regex used to check BIP38 string look correct
-	bip38Regex        = regexp.MustCompile(`^6P[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{56}$`)
+	bip38Regex = regexp.MustCompile(`^6P[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{56}$`)
+
 	supportedNetworks = []*chaincfg.Params{
 		&chaincfg.MainNetParams,
 		&chaincfg.TestNet3Params,
 		&chaincfg.RegressionNetParams,
 		&chaincfg.SimNetParams,
 		&chaincfg.SigNetParams,
+	}
+
+	networkAliases = map[string]*chaincfg.Params{
+		"main":       &chaincfg.MainNetParams,
+		"mainnet":    &chaincfg.MainNetParams,
+		"bitcoin":    &chaincfg.MainNetParams,
+		"livenet":    &chaincfg.MainNetParams,
+		"prod":       &chaincfg.MainNetParams,
+		"production": &chaincfg.MainNetParams,
+
+		"test":     &chaincfg.TestNet3Params,
+		"testnet":  &chaincfg.TestNet3Params,
+		"testnet3": &chaincfg.TestNet3Params,
+		"tn3":      &chaincfg.TestNet3Params,
+
+		"regtest":       &chaincfg.RegressionNetParams,
+		"regression":    &chaincfg.RegressionNetParams,
+		"regressionnet": &chaincfg.RegressionNetParams,
+
+		"simnet": &chaincfg.SimNetParams,
+		"sim":    &chaincfg.SimNetParams,
+
+		"signet": &chaincfg.SigNetParams,
+		"sig":    &chaincfg.SigNetParams,
 	}
 )
 
@@ -39,6 +66,39 @@ type EncryptedKey struct {
 	Key        string // The encrypted key in base58 format
 	Compressed bool   // Whether the original key was compressed
 	ECMultiply bool   // Whether EC multiplication mode was used
+}
+
+// NetworkFromName resolves a user-provided network identifier to the matching chain parameters.
+func NetworkFromName(name string) (*chaincfg.Params, error) {
+	normalized := strings.ToLower(strings.TrimSpace(name))
+	if normalized == "" {
+		return nil, errors.New("network name is required")
+	}
+
+	if params, ok := networkAliases[normalized]; ok {
+		return params, nil
+	}
+
+	return nil, fmt.Errorf("unsupported network: %s", name)
+}
+
+// GenerateWIF creates a fresh private key for the provided network and encodes it as WIF.
+func GenerateWIF(params *chaincfg.Params, compressed bool) (*btcutil.WIF, error) {
+	if params == nil {
+		return nil, errors.New("network parameters are required")
+	}
+
+	privKey, err := btcec.NewPrivateKey()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate private key: %v", err)
+	}
+
+	wif, err := btcutil.NewWIF(privKey, params, compressed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode WIF: %v", err)
+	}
+
+	return wif, nil
 }
 
 // IsBIP38Format checks if the given string matches the BIP38 format pattern.
@@ -71,7 +131,7 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 	hash := sha256.Sum256(payload)
 	hash2 := sha256.Sum256(hash[:])
 
-	if !bytesEqual(hash2[:4], checksum) {
+	if !constantTimeEqual(hash2[:4], checksum) {
 		return nil, errors.New("invalid checksum")
 	}
 
@@ -130,6 +190,9 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 
 	// Verify by checking address hash matches salt
 	privKey, _ := btcec.PrivKeyFromBytes(privateKeyBytes)
+	if privKey.Key.IsZero() {
+		return nil, errors.New("invalid private key scalar")
+	}
 	pubKey := privKey.PubKey()
 	var pubKeyBytes []byte
 	if compressed {
@@ -149,7 +212,7 @@ func DecryptKey(encryptedKey string, passphrase []byte) (*btcutil.WIF, error) {
 		hash = sha256.Sum256([]byte(address))
 		hash2 = sha256.Sum256(hash[:])
 
-		if bytesEqual(hash2[:4], addressHash) {
+		if constantTimeEqual(hash2[:4], addressHash) {
 			matchedNet = params
 			break
 		}
@@ -181,7 +244,7 @@ func EncryptKey(wif *btcutil.WIF, passphrase []byte) (string, error) {
 		pubKeyBytes = pubKey.SerializeUncompressed()
 	}
 
-	netParams, err := networkFromWIF(wif)
+	netParams, err := NetworkFromWIF(wif)
 	if err != nil {
 		return "", err
 	}
@@ -244,20 +307,15 @@ func EncryptKey(wif *btcutil.WIF, passphrase []byte) (string, error) {
 	return base58.Encode(result), nil
 }
 
-// bytesEqual compare two byte slices for equality without timing tricks
-func bytesEqual(a, b []byte) bool {
+func constantTimeEqual(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
 	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
+	return subtle.ConstantTimeCompare(a, b) == 1
 }
 
-func networkFromWIF(wif *btcutil.WIF) (*chaincfg.Params, error) {
+// NetworkFromWIF returns the Bitcoin network associated with the provided WIF.
+func NetworkFromWIF(wif *btcutil.WIF) (*chaincfg.Params, error) {
 	for _, params := range supportedNetworks {
 		if wif.IsForNet(params) {
 			return params, nil

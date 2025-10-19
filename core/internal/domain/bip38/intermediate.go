@@ -76,6 +76,9 @@ func GenerateIntermediateCode(passphrase []byte, lotNumber, sequenceNumber *uint
 
 	// Compute the elliptic curve point G * passfactor for passpoint
 	privKey, _ := btcec.PrivKeyFromBytes(passfactor)
+	if privKey.Key.IsZero() {
+		return "", errors.New("invalid passfactor scalar")
+	}
 	passPoint := privKey.PubKey().SerializeCompressed()
 
 	// Build intermediate code bytes step by step
@@ -110,9 +113,9 @@ func ParseIntermediateCode(code string) (*IntermediateCode, error) {
 	magic := decoded[:8]
 	hasLotSeq := false
 
-	if bytesEqual(magic, intermediateLot) {
+	if constantTimeEqual(magic, intermediateLot) {
 		hasLotSeq = true
-	} else if !bytesEqual(magic, intermediateMagic) {
+	} else if !constantTimeEqual(magic, intermediateMagic) {
 		return nil, errors.New("invalid intermediate code magic")
 	}
 
@@ -122,7 +125,7 @@ func ParseIntermediateCode(code string) (*IntermediateCode, error) {
 	hash := sha256.Sum256(payload)
 	hash2 := sha256.Sum256(hash[:])
 
-	if !bytesEqual(hash2[:4], checksum) {
+	if !constantTimeEqual(hash2[:4], checksum) {
 		return nil, errors.New("invalid checksum")
 	}
 
@@ -163,5 +166,5 @@ func IsValidIntermediateCode(code string) bool {
 	}
 
 	magic := decoded[:8]
-	return bytesEqual(magic, intermediateMagic) || bytesEqual(magic, intermediateLot)
+	return constantTimeEqual(magic, intermediateMagic) || constantTimeEqual(magic, intermediateLot)
 }
