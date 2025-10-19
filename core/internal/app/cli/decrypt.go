@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
 	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
 	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
@@ -31,11 +29,15 @@ Examples:
 	RunE: runDecrypt,
 }
 
-var showAddress bool
+var (
+	showAddress        bool
+	decryptAddressType = "bip84"
+)
 
 func init() {
 	rootCmd.AddCommand(decryptCmd)
 	decryptCmd.Flags().BoolVar(&showAddress, "show-address", false, "show the Bitcoin address for the decrypted key")
+	decryptCmd.Flags().StringVar(&decryptAddressType, "address-type", "bip84", "address type (bip84|bip44)")
 }
 
 func runDecrypt(cmd *cobra.Command, args []string) error {
@@ -104,20 +106,24 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 
 	// Show address when user requests
 	if showAddress {
-		pubKey := wif.PrivKey.PubKey()
-		var pubKeyBytes []byte
-		if wif.CompressPubKey {
-			pubKeyBytes = pubKey.SerializeCompressed()
-		} else {
-			pubKeyBytes = pubKey.SerializeUncompressed()
-		}
-
-		addressPubKey, err := btcutil.NewAddressPubKey(pubKeyBytes, &chaincfg.MainNetParams)
+		addrType, err := parseAddressType(decryptAddressType)
 		if err != nil {
-			return fmt.Errorf("failed to create address: %v", err)
+			return errors.NewValidationError("invalid address type", err).
+				WithContext("address_type", decryptAddressType)
 		}
 
-		result["address"] = addressPubKey.EncodeAddress()
+		effectiveType := addrType
+		if effectiveType == addressTypeBIP84 && !wif.CompressPubKey {
+			effectiveType = addressTypeBIP44
+		}
+
+		address, err := addressForWIF(wif, effectiveType)
+		if err != nil {
+			return fmt.Errorf("failed to derive address: %v", err)
+		}
+
+		result["address"] = address
+		result["address_type"] = string(effectiveType)
 	}
 
 	// Output based on format
@@ -133,7 +139,7 @@ func runDecrypt(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Private key (WIF): %s\n", wif.String())
 
 		if showAddress {
-			fmt.Printf("Bitcoin address: %s\n", result["address"])
+			fmt.Printf("Bitcoin address (%s): %s\n", result["address_type"], result["address"])
 		}
 
 		// Show extra info when verbose flag is active

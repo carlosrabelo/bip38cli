@@ -68,6 +68,39 @@ Código Intermediário:    passphraseabc123def456ghi789jkl012mno345pqr...
 
 ##  Uso Básico
 
+### Gerar uma nova carteira (WIF)
+
+```bash
+# Criar uma chave comprimida na mainnet (padrão)
+bip38cli wallet generate
+
+# Apontar para outra rede (ex.: testnet) e mostrar o endereço
+bip38cli wallet generate --network testnet --show-address
+
+# Já criptografar a chave com BIP38 (senha solicitada no terminal)
+bip38cli wallet generate --encrypt
+
+# Forçar saída legada P2PKH (BIP44) ou gerar chave não comprimida
+bip38cli wallet generate --address-type bip44 --show-address
+bip38cli wallet generate --uncompressed
+```
+
+Chaves comprimidas geram endereços BIP84 (bech32). Se optar por usar uma chave
+não comprimida, o CLI recorre ao endereço legado P2PKH.
+
+Use `--address-type bip44` com `wallet generate` ou `wallet inspect` sempre
+que precisar forçar a saída legada P2PKH a partir de uma chave comprimida.
+
+### Inspecionar uma WIF existente
+
+```bash
+# Exibir rede, compressão e endereço derivado
+bip38cli wallet inspect 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
+
+# Saída em JSON para automações
+bip38cli wallet inspect --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+```
+
 ### 1. Criptografar uma Chave Privada
 
 **Modo Interativo (Mais Seguro):**

@@ -9,6 +9,8 @@ A focused command-line application that implements the [BIP38](https://github.co
 ## Highlights
 
 - Encrypt and decrypt Wallet Import Format (WIF) keys using spec-compliant BIP38 routines
+- Generate fresh WIF keys for any Bitcoin network with optional BIP38 encryption
+- Display native SegWit (BIP84) bech32 addresses for compressed keys, with legacy fallback for uncompressed WIFs
 - Generate and validate intermediate codes for two-factor key creation flows
 - Zero out passphrase buffers as soon as possible to reduce memory exposure
 - Hidden terminal input for passphrases with compression toggles and verbose insights
@@ -82,6 +84,45 @@ sudo ./scripts/uninstall.sh
 The helper script keeps Docker artefacts under `docker/` and will build a local image on demand. For advanced scenarios see `docker/README.md`.
 
 ## Usage
+
+### Generate a New Wallet (WIF)
+
+```bash
+# Generate a compressed mainnet WIF (default settings)
+bip38cli wallet generate
+
+# Target another network (e.g. testnet) and show the derived address
+bip38cli wallet generate --network testnet --show-address
+
+# Encrypt the generated key with BIP38 (interactive passphrase prompt)
+bip38cli wallet generate --encrypt
+
+# JSON output (includes WIF, network, compression, and optional address/encrypted key)
+bip38cli wallet generate --output-format json --show-address
+
+# Legacy P2PKH (BIP44) address instead of bech32 (BIP84 default)
+bip38cli wallet generate --address-type bip44 --show-address
+
+# Generate an uncompressed key (forces legacy P2PKH output)
+bip38cli wallet generate --uncompressed
+```
+
+> Addresses for compressed keys follow BIP84 (bech32). If you explicitly generate an uncompressed key, the CLI falls back to legacy P2PKH output.
+
+Use `--address-type bip44` whenever you need to force a legacy P2PKH address for compatibility with older wallets.
+
+### Inspect an Existing WIF
+
+```bash
+# Show network, compression and address
+bip38cli wallet inspect 5HueCGU8rMjxEXxiPuD5BDku4MkFqeZyd4dZ1jvhTVqvbTLvyTJ
+
+# JSON output (machine friendly)
+bip38cli wallet inspect --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+
+# Force legacy P2PKH output
+bip38cli wallet inspect --address-type bip44 KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7
+```
 
 ### Encrypt a WIF Key
 
@@ -160,9 +201,16 @@ Command-specific flags:
 - `encrypt --compressed`: Force compressed public key format
 - `encrypt --uncompressed`: Force uncompressed public key format  
 - `decrypt --show-address`: Show the Bitcoin address for the decrypted key
+- `decrypt --address-type <bip84|bip44>`: Control address encoding when `--show-address` is used (default: bip84)
 - `intermediate generate --lot <number>`: Specify lot number (0-1048575)
 - `intermediate generate --sequence <number>`: Specify sequence number (0-4095)
 - `intermediate generate --use-lot-sequence`: Use lot and sequence numbers
+- `wallet generate --address-type <bip84|bip44>`: Choose bech32 (bip84) or legacy P2PKH (bip44) output
+- `wallet generate --uncompressed`: Produce an uncompressed key (implicitly legacy address)
+- `wallet inspect --address-type <bip84|bip44>`: Inspect WIFs using the desired address encoding
+- `wallet generate --network <name>`: Choose network (`mainnet`, `testnet`, `regtest`, `simnet`, `signet`)
+- `wallet generate --encrypt`: Encrypt the generated key with BIP38 (interactive passphrase)
+- `wallet generate --show-address`: Display the derived Bitcoin address for the new key
 
 ### Examples with JSON Output
 
@@ -173,7 +221,7 @@ bip38cli encrypt --output-format json KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4Xq
 
 # Decrypt with JSON output and address
 bip38cli decrypt --show-address --output-format json 6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg
-# Output: {"private_key": "KwYg...", "compressed": true, "address": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"}
+# Output: {"private_key": "KwYg...", "compressed": true, "address": "bc1qklnjad76qxxxy833ggfjsjyjc29vdrgnpnju5d"}
 ```
 
 ## Documentation
