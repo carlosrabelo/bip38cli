@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
+	"github.com/carlosrabelo/bip38cli/pkg/logger"
 	"github.com/spf13/cobra"
 )
 

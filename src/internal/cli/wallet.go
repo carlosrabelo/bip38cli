@@ -9,21 +9,21 @@ import (
 	"strings"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
+	"github.com/carlosrabelo/bip38cli/pkg/errors"
+	"github.com/carlosrabelo/bip38cli/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
 var (
-	walletNetwork             = "mainnet"
-	walletEncrypt             bool
-	walletShowAddr            bool
-	walletForceCompressed     bool
-	walletForceUncompressed   bool
-	walletAddressType         = "bip84"
-	walletInspectAddressType  = "bip84"
-	generateWIF               = bip38.GenerateWIF
+	walletNetwork            = "mainnet"
+	walletEncrypt            bool
+	walletShowAddr           bool
+	walletForceCompressed    bool
+	walletForceUncompressed  bool
+	walletAddressType        = "bip84"
+	walletInspectAddressType = "bip84"
+	generateWIF              = bip38.GenerateWIF
 )
 
 var walletCmd = &cobra.Command{

@@ -7,15 +7,15 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/spf13/cobra"
 
-	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
 )
-
-type addressType string
 
 const (
 	addressTypeBIP84 addressType = "bip84"
 	addressTypeBIP44 addressType = "bip44"
 )
+
+type addressType string
 
 func parseAddressType(value string) (addressType, error) {
 	normalized := strings.ToLower(strings.TrimSpace(value))

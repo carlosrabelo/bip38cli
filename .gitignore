@@ -55,10 +55,6 @@ coverage.html
 tmp/
 temp/
 
-# Air live reload
-.air.toml
-!.air.toml
-
 # Docker
 .dockerignore
 

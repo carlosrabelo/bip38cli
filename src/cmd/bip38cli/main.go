@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/carlosrabelo/bip38cli/core/internal/app/cli"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
+	"github.com/carlosrabelo/bip38cli/internal/cli"
+	"github.com/carlosrabelo/bip38cli/pkg/logger"
 )
 
 var (

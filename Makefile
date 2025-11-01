@@ -1,51 +1,35 @@
-CORE_DIR       := core
-GO             ?= go
+SRC_DIR := src
 
-.DEFAULT_GOAL  := help
+.DEFAULT_GOAL := help
 
-.PHONY: build clean fmt help install lint test uninstall verify
+.PHONY: build clean fmt help install lint test uninstall
 
-build: ## Build CLI binary
-	@$(MAKE) -C $(CORE_DIR) build
+build: ## Build bip38cli binary with version metadata
+	@$(MAKE) -C $(SRC_DIR) build
 
-clean: ## Clean build artifacts from core/
-	@$(MAKE) -C $(CORE_DIR) clean
+clean: ## Remove build outputs and go caches
+	@$(MAKE) -C $(SRC_DIR) clean
 
-fmt: ## Format Go sources with gofmt
-	@$(MAKE) -C $(CORE_DIR) fmt
+fmt: ## Run gofmt across src/
+	@$(MAKE) -C $(SRC_DIR) fmt
 
-help: ## Show root level targets
-	@printf "BIP38CLI - Bitcoin Private Key Encryption Tool\n"
-	@printf "==============================================\n\n"
-	@printf " Build & Install:\n"
-	@printf "   build           Build CLI binary\n"
-	@printf "   install         Install CLI system-wide\n"
-	@printf "   uninstall       Remove CLI from system\n\n"
-	@printf " Quality:\n"
-	@printf "   fmt             Format Go sources with gofmt\n"
-	@printf "   lint            Run golangci-lint via core/\n\n"
-	@printf " Testing:\n"
-	@printf "   test            Run go test ./... in core/\n\n"
-	@printf " Utilities:\n"
-	@printf "   clean           Clean build artifacts from core/\n"
-	@printf "   verify          Run lint and test in one shot\n"
-	@printf "   help            Show this help\n"
+help: ## Show available targets
+	@echo "BIP38CLI - Main targets (delegates to src/Makefile)"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) \
+		| sort \
+		| awk 'BEGIN {FS = ":.*## "} {printf "  %-15s %s\n", $$1, $$2}'
+	@echo ""
+	@echo "For more targets, run 'make -C src help'"
 
-lint: ## Run golangci-lint via core/
-	@$(MAKE) -C $(CORE_DIR) lint
+install: build ## Install binary via scripts/install.sh
+	@./scripts/install.sh --user
 
-test: ## Run go test ./... in core/
-	@$(MAKE) -C $(CORE_DIR) test
+lint: ## Run golangci-lint when available
+	@$(MAKE) -C $(SRC_DIR) lint
 
-install: ## Install CLI system-wide
-	@$(MAKE) -C $(CORE_DIR) install
+test: ## Execute go test ./...
+	@$(MAKE) -C $(SRC_DIR) test
 
-uninstall: ## Remove CLI from system
-	@$(MAKE) -C $(CORE_DIR) uninstall
-
-verify: ## Run lint and test in one shot
-	@$(MAKE) lint
-	@$(MAKE) test
-
-%:
-	@$(MAKE) -C $(CORE_DIR) $@
+uninstall: ## Remove installed binary via scripts/uninstall.sh
+	@./scripts/uninstall.sh --user

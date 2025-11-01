@@ -10,9 +10,9 @@ import (
 	"syscall"
 
 	"github.com/btcsuite/btcd/btcutil"
-	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/errors"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
+	"github.com/carlosrabelo/bip38cli/pkg/errors"
+	"github.com/carlosrabelo/bip38cli/pkg/logger"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )

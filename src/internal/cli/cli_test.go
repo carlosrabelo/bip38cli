@@ -12,8 +12,8 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/carlosrabelo/bip38cli/core/internal/domain/bip38"
-	"github.com/carlosrabelo/bip38cli/core/internal/pkg/logger"
+	"github.com/carlosrabelo/bip38cli/internal/bip38"
+	"github.com/carlosrabelo/bip38cli/pkg/logger"
 	"github.com/spf13/cobra"
 )
 
