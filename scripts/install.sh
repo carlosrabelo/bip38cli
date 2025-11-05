@@ -13,7 +13,12 @@ usage() {
 }
 
 if [[ "${1:-}" == "--user" ]]; then
-  TARGET_DIR="${HOME}/.local/bin"
+  # Prefer ~/.local/go/bin if it exists and is in PATH (common for Go projects)
+  if [[ -d "${HOME}/.local/go/bin" ]] && echo "${PATH}" | tr ':' '\n' | grep -qx "${HOME}/.local/go/bin"; then
+    TARGET_DIR="${HOME}/.local/go/bin"
+  else
+    TARGET_DIR="${HOME}/.local/bin"
+  fi
   MODE="user"
   shift
 fi
