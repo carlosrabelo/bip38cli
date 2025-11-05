@@ -46,7 +46,7 @@ jobs:
       - name: Build linux amd64
         run: |
           mkdir -p dist/linux-amd64
-          cd core
+          cd src
           GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/linux-amd64/bip38cli ./cmd/bip38cli
           cd ..
           tar -C dist/linux-amd64 -czf dist/bip38cli_${TAG}_linux_amd64.tar.gz bip38cli
@@ -54,7 +54,7 @@ jobs:
       - name: Build linux arm64
         run: |
           mkdir -p dist/linux-arm64
-          cd core
+          cd src
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/linux-arm64/bip38cli ./cmd/bip38cli
           cd ..
           tar -C dist/linux-arm64 -czf dist/bip38cli_${TAG}_linux_arm64.tar.gz bip38cli
@@ -62,7 +62,7 @@ jobs:
       - name: Build darwin amd64
         run: |
           mkdir -p dist/darwin-amd64
-          cd core
+          cd src
           GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/darwin-amd64/bip38cli ./cmd/bip38cli
           cd ..
           tar -C dist/darwin-amd64 -czf dist/bip38cli_${TAG}_darwin_amd64.tar.gz bip38cli
@@ -70,7 +70,7 @@ jobs:
       - name: Build darwin arm64
         run: |
           mkdir -p dist/darwin-arm64
-          cd core
+          cd src
           GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/darwin-arm64/bip38cli ./cmd/bip38cli
           cd ..
           tar -C dist/darwin-arm64 -czf dist/bip38cli_${TAG}_darwin_arm64.tar.gz bip38cli
@@ -78,7 +78,7 @@ jobs:
       - name: Build windows amd64
         run: |
           mkdir -p dist/windows-amd64
-          cd core
+          cd src
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/windows-amd64/bip38cli.exe ./cmd/bip38cli
           cd ..
           (cd dist/windows-amd64 && zip -j ../bip38cli_${TAG}_windows_amd64.zip bip38cli.exe)
@@ -86,7 +86,7 @@ jobs:
       - name: Build windows arm64
         run: |
           mkdir -p dist/windows-arm64
-          cd core
+          cd src
           GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/windows-arm64/bip38cli.exe ./cmd/bip38cli
           cd ..
           (cd dist/windows-arm64 && zip -j ../bip38cli_${TAG}_windows_arm64.zip bip38cli.exe)
