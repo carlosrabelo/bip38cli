@@ -1,0 +1,111 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - draft
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Build And Release
+    runs-on: ubuntu-latest
+    env:
+      GO_VERSION: '1.24'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Prepare environment
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Use tag name for automatic releases
+            TAG="${{ github.ref_name }}"
+            echo "Creating release for tag: $TAG"
+          else
+            # Use commit hash for manual releases
+            COMMIT_HASH="${{ github.sha }}"
+            SHORT_HASH="${COMMIT_HASH:0:8}"
+            TAG="${SHORT_HASH}"
+            echo "Creating release for commit: $TAG"
+          fi
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+          echo "LD_FLAGS=-s -w -X main.version=$TAG -X main.buildTime=$BUILD_TIME" >> $GITHUB_ENV
+
+      - name: Build linux amd64
+        run: |
+          mkdir -p dist/linux-amd64
+          cd core
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/linux-amd64/bip38cli ./cmd/bip38cli
+          cd ..
+          tar -C dist/linux-amd64 -czf dist/bip38cli_${TAG}_linux_amd64.tar.gz bip38cli
+
+      - name: Build linux arm64
+        run: |
+          mkdir -p dist/linux-arm64
+          cd core
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/linux-arm64/bip38cli ./cmd/bip38cli
+          cd ..
+          tar -C dist/linux-arm64 -czf dist/bip38cli_${TAG}_linux_arm64.tar.gz bip38cli
+
+      - name: Build darwin amd64
+        run: |
+          mkdir -p dist/darwin-amd64
+          cd core
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/darwin-amd64/bip38cli ./cmd/bip38cli
+          cd ..
+          tar -C dist/darwin-amd64 -czf dist/bip38cli_${TAG}_darwin_amd64.tar.gz bip38cli
+
+      - name: Build darwin arm64
+        run: |
+          mkdir -p dist/darwin-arm64
+          cd core
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/darwin-arm64/bip38cli ./cmd/bip38cli
+          cd ..
+          tar -C dist/darwin-arm64 -czf dist/bip38cli_${TAG}_darwin_arm64.tar.gz bip38cli
+
+      - name: Build windows amd64
+        run: |
+          mkdir -p dist/windows-amd64
+          cd core
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/windows-amd64/bip38cli.exe ./cmd/bip38cli
+          cd ..
+          (cd dist/windows-amd64 && zip -j ../bip38cli_${TAG}_windows_amd64.zip bip38cli.exe)
+
+      - name: Build windows arm64
+        run: |
+          mkdir -p dist/windows-arm64
+          cd core
+          GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags="$LD_FLAGS" -o ../dist/windows-arm64/bip38cli.exe ./cmd/bip38cli
+          cd ..
+          (cd dist/windows-arm64 && zip -j ../bip38cli_${TAG}_windows_arm64.zip bip38cli.exe)
+
+
+
+      - name: Publish release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Bip38cli ${{ env.TAG }}
+          tag_name: ${{ env.TAG }}
+          generate_release_notes: true
+          files: |
+            dist/bip38cli_${{ env.TAG }}_linux_amd64.tar.gz
+            dist/bip38cli_${{ env.TAG }}_linux_arm64.tar.gz
+            dist/bip38cli_${{ env.TAG }}_darwin_amd64.tar.gz
+            dist/bip38cli_${{ env.TAG }}_darwin_arm64.tar.gz
+            dist/bip38cli_${{ env.TAG }}_windows_amd64.zip
+            dist/bip38cli_${{ env.TAG }}_windows_arm64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
