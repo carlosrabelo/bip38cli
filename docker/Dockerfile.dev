@@ -2,25 +2,19 @@
 FROM golang:1.24-alpine
 
 # Install development dependencies
-RUN apk add --no-cache git ca-certificates tzdata air
+RUN apk add --no-cache git ca-certificates tzdata
 
 # Set working directory
 WORKDIR /app
 
 # Copy go mod files
-COPY core/go.mod core/go.sum ./
+COPY src/go.mod src/go.sum ./
 
 # Download dependencies
 RUN go mod download
 
 # Copy source code
-COPY core/ .
+COPY src/ .
 
-# Install air for hot reload (if not already available)
-RUN go install github.com/cosmtrek/air@latest
-
-# Expose port for potential web interface (future)
-EXPOSE 8080
-
-# Default command runs the application with hot reload
-CMD ["air", "-c", ".air.toml"]
+# Default command - can be overridden
+CMD ["go", "run", "./cmd/bip38cli", "--help"]

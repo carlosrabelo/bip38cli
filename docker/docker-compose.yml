@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 services:
   bip38cli:
@@ -22,17 +22,17 @@ services:
   bip38cli-test:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
-    image: bip38cli:latest
+      dockerfile: docker/Dockerfile.dev
+    image: bip38cli:dev
     container_name: bip38cli-test
     profiles:
       - test
     environment:
       - CGO_ENABLED=0
     volumes:
-      - ../core:/app/core:ro
-    working_dir: /app/core
-    command: ["go", "test", "./...", "-v", "-cover"]
+      - ../src:/app/src
+    working_dir: /app/src
+    command: ["go", "test", "./...", "-v", "-cover", "-coverprofile=../coverage.out"]
 
   bip38cli-dev:
     build:
@@ -45,7 +45,7 @@ services:
     environment:
       - BIP38CLI_CONFIG=/app/config/.bip38cli.yaml
     volumes:
-      - ../core:/app/core
+      - ../src:/app/src
       - ../config:/app/config
-    working_dir: /app/core
+    working_dir: /app/src
     command: ["go", "run", "./cmd/bip38cli", "--help"]

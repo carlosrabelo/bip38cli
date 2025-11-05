@@ -64,4 +64,7 @@ Vagrantfile
 bootstrap.sh
 
 # Nexor specific
-.nexor/
+.nexor/local/
+.nexor/cache/
+.nexor/logs/
+.nexor/temp/

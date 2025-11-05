@@ -7,6 +7,60 @@ import (
 	"time"
 )
 
+// MetricsSnapshot represents a read-only snapshot of metrics
+type MetricsSnapshot struct {
+	// Operation metrics
+	EncryptCount      int64 `json:"encrypt_count"`
+	DecryptCount      int64 `json:"decrypt_count"`
+	IntermediateCount int64 `json:"intermediate_count"`
+
+	// Timing metrics
+	EncryptDuration      time.Duration `json:"encrypt_duration_total"`
+	DecryptDuration      time.Duration `json:"decrypt_duration_total"`
+	IntermediateDuration time.Duration `json:"intermediate_duration_total"`
+
+	// Error metrics
+	EncryptErrors      int64 `json:"encrypt_errors"`
+	DecryptErrors      int64 `json:"decrypt_errors"`
+	IntermediateErrors int64 `json:"intermediate_errors"`
+
+	// Performance metrics
+	AverageEncryptTime      time.Duration `json:"average_encrypt_time"`
+	AverageDecryptTime      time.Duration `json:"average_decrypt_time"`
+	AverageIntermediateTime time.Duration `json:"average_intermediate_time"`
+
+	// System metrics
+	StartTime time.Time     `json:"start_time"`
+	Uptime    time.Duration `json:"uptime"`
+}
+
+// EncryptSuccessRate returns the success rate for encrypt operations (0-100)
+func (m MetricsSnapshot) EncryptSuccessRate() float64 {
+	if m.EncryptCount == 0 {
+		return 0
+	}
+	return roundToTwoDecimals(float64(m.EncryptCount-m.EncryptErrors) /
+		float64(m.EncryptCount) * 100)
+}
+
+// DecryptSuccessRate returns the success rate for decrypt operations (0-100)
+func (m MetricsSnapshot) DecryptSuccessRate() float64 {
+	if m.DecryptCount == 0 {
+		return 0
+	}
+	return roundToTwoDecimals(float64(m.DecryptCount-m.DecryptErrors) /
+		float64(m.DecryptCount) * 100)
+}
+
+// IntermediateSuccessRate returns the success rate for intermediate operations (0-100)
+func (m MetricsSnapshot) IntermediateSuccessRate() float64 {
+	if m.IntermediateCount == 0 {
+		return 0
+	}
+	return roundToTwoDecimals(float64(m.IntermediateCount-m.IntermediateErrors) /
+		float64(m.IntermediateCount) * 100)
+}
+
 // Metrics holds basic performance metrics for the application
 type Metrics struct {
 	mu sync.RWMutex
@@ -109,15 +163,29 @@ func (m *Metrics) UpdateUptime() {
 }
 
 // GetSnapshot returns a copy of current metrics
-func (m *Metrics) GetSnapshot() Metrics {
+func (m *Metrics) GetSnapshot() MetricsSnapshot {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.Uptime = time.Since(m.StartTime)
 
-	snapshot := *m
-	snapshot.mu = sync.RWMutex{}
-	return snapshot
+	// Create a proper snapshot without copying the mutex
+	return MetricsSnapshot{
+		EncryptCount:            m.EncryptCount,
+		DecryptCount:            m.DecryptCount,
+		IntermediateCount:       m.IntermediateCount,
+		EncryptDuration:         m.EncryptDuration,
+		DecryptDuration:         m.DecryptDuration,
+		IntermediateDuration:    m.IntermediateDuration,
+		EncryptErrors:           m.EncryptErrors,
+		DecryptErrors:           m.DecryptErrors,
+		IntermediateErrors:      m.IntermediateErrors,
+		AverageEncryptTime:      m.AverageEncryptTime,
+		AverageDecryptTime:      m.AverageDecryptTime,
+		AverageIntermediateTime: m.AverageIntermediateTime,
+		StartTime:               m.StartTime,
+		Uptime:                  m.Uptime,
+	}
 }
 
 // Reset resets all metrics to zero
@@ -258,7 +326,7 @@ func RecordIntermediate(duration time.Duration, success bool) {
 }
 
 // GetSnapshot returns a snapshot of the global metrics
-func GetSnapshot() Metrics {
+func GetSnapshot() MetricsSnapshot {
 	return GetMetrics().GetSnapshot()
 }
 
