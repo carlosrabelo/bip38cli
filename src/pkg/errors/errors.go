@@ -1,3 +1,4 @@
+// Package errors defines the error types and handling for the application.
 package errors
 
 import (
@@ -9,19 +10,19 @@ import (
 type ErrorType string
 
 const (
-	// Validation errors occur when input validation fails
+	// ValidationError occurs when input validation fails
 	ValidationError ErrorType = "validation"
 
-	// Crypto errors occur during cryptographic operations
+	// CryptoError occurs during cryptographic operations
 	CryptoError ErrorType = "crypto"
 
-	// Config errors occur during configuration loading
+	// ConfigError occurs during configuration loading
 	ConfigError ErrorType = "config"
 
-	// Input errors occur when reading user input
+	// InputError occurs when reading user input
 	InputError ErrorType = "input"
 
-	// System errors occur for system-level failures
+	// SystemError occurs for system-level failures
 	SystemError ErrorType = "system"
 )
 

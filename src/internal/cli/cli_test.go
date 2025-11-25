@@ -1,3 +1,4 @@
+// Package cli implements the command-line interface commands and flags.
 package cli
 
 import (
@@ -505,7 +506,7 @@ func TestRunWalletGenerateEncryptsAndShowsAddress(t *testing.T) {
 		t.Fatalf("failed to encrypt expected WIF: %v", err)
 	}
 
-	generateWIF = func(params *chaincfg.Params, compressed bool) (*btcutil.WIF, error) {
+	generateWIF = func(_ *chaincfg.Params, compressed bool) (*btcutil.WIF, error) {
 		capturedCompressed = compressed
 		return btcutil.DecodeWIF(wifString)
 	}
@@ -677,7 +678,7 @@ func TestRunWalletGenerateBIP44Address(t *testing.T) {
 		t.Fatalf("failed to derive expected BIP44 address: %v", err)
 	}
 
-	generateWIF = func(params *chaincfg.Params, compressed bool) (*btcutil.WIF, error) {
+	generateWIF = func(_ *chaincfg.Params, _ bool) (*btcutil.WIF, error) {
 		return wif, nil
 	}
 

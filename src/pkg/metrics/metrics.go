@@ -1,3 +1,4 @@
+// Package metrics provides performance tracking and statistics for the application.
 package metrics
 
 import (
@@ -115,9 +116,22 @@ func (m *Metrics) GetSnapshot() Metrics {
 
 	m.Uptime = time.Since(m.StartTime)
 
-	snapshot := *m
-	snapshot.mu = sync.RWMutex{}
-	return snapshot
+	return Metrics{
+		EncryptCount:            m.EncryptCount,
+		DecryptCount:            m.DecryptCount,
+		IntermediateCount:       m.IntermediateCount,
+		EncryptDuration:         m.EncryptDuration,
+		DecryptDuration:         m.DecryptDuration,
+		IntermediateDuration:    m.IntermediateDuration,
+		EncryptErrors:           m.EncryptErrors,
+		DecryptErrors:           m.DecryptErrors,
+		IntermediateErrors:      m.IntermediateErrors,
+		AverageEncryptTime:      m.AverageEncryptTime,
+		AverageDecryptTime:      m.AverageDecryptTime,
+		AverageIntermediateTime: m.AverageIntermediateTime,
+		StartTime:               m.StartTime,
+		Uptime:                  m.Uptime,
+	}
 }
 
 // Reset resets all metrics to zero
@@ -145,7 +159,7 @@ func (m *Metrics) Reset() {
 	m.Uptime = 0
 }
 
-// SuccessRate returns the success rate for encrypt operations (0-100)
+// EncryptSuccessRate returns the success rate for encrypt operations (0-100)
 func (m *Metrics) EncryptSuccessRate() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -157,7 +171,7 @@ func (m *Metrics) EncryptSuccessRate() float64 {
 		float64(m.EncryptCount) * 100)
 }
 
-// SuccessRate returns the success rate for decrypt operations (0-100)
+// DecryptSuccessRate returns the success rate for decrypt operations (0-100)
 func (m *Metrics) DecryptSuccessRate() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -169,7 +183,7 @@ func (m *Metrics) DecryptSuccessRate() float64 {
 		float64(m.DecryptCount) * 100)
 }
 
-// SuccessRate returns the success rate for intermediate operations (0-100)
+// IntermediateSuccessRate returns the success rate for intermediate operations (0-100)
 func (m *Metrics) IntermediateSuccessRate() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

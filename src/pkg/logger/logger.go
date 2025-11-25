@@ -1,3 +1,4 @@
+// Package logger provides a configured logrus logger for the application.
 package logger
 
 import (

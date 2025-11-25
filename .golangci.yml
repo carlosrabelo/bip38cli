@@ -1,16 +1,28 @@
+version: 2
 run:
   timeout: 5m
   modules-download-mode: readonly
 
 linters-settings:
   govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0
+    enable:
+      - shadow
   gocyclo:
     min-complexity: 15
-  maligned:
-    suggest-new: true
+  depguard:
+    rules:
+      MyAllowed:
+        files:
+          - $all
+        allow:
+          - $gostd
+          - github.com/carlosrabelo/bip38cli/**
+          - github.com/btcsuite/btcd/**
+          - github.com/spf13/cobra
+          - golang.org/x/crypto/**
+          - github.com/sirupsen/logrus
+          - github.com/stretchr/testify/**
+          - golang.org/x/term
   dupl:
     threshold: 100
   goconst:
@@ -19,7 +31,7 @@ linters-settings:
   misspell:
     locale: US
   lll:
-    line-length: 140
+    line-length: 160
   goimports:
     local-prefixes: github.com/carlosrabelo/bip38cli
   gocritic:
@@ -39,41 +51,25 @@ linters-settings:
 linters:
   enable:
     - bodyclose
-    - deadcode
-    - depguard
     - dogsled
     - dupl
     - errcheck
-    - funlen
-    - gochecknoinits
-    - goconst
-    - gocritic
     - gocyclo
-    - gofmt
-    - goimports
-    - golint
-    - gomnd
+    - revive
+    - goprintffuncname
     - goprintffuncname
     - gosec
-    - gosimple
     - govet
     - ineffassign
-    - interfacer
-    - lll
     - misspell
     - nakedret
     - noctx
     - nolintlint
     - rowserrcheck
-    - scopelint
     - staticcheck
-    - structcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unparam
     - unused
-    - varcheck
     - whitespace
 
 issues:
@@ -93,6 +89,5 @@ issues:
   new: false
 
 output:
-  format: colored-line-number
   print-issued-lines: true
   print-linter-name: true

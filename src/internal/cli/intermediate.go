@@ -71,7 +71,7 @@ func init() {
 	generateIntermediateCmd.Flags().BoolVar(&useLotSeq, "use-lot-sequence", false, "use lot and sequence numbers")
 }
 
-func runGenerateIntermediate(cmd *cobra.Command, args []string) error {
+func runGenerateIntermediate(cmd *cobra.Command, _ []string) error {
 	// Reinitialize logger with verbose setting if needed
 	if isVerbose(cmd) {
 		logger.Init(true)

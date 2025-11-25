@@ -75,7 +75,7 @@ func init() {
 	walletInspectCmd.Flags().StringVar(&walletInspectAddressType, "address-type", "bip84", "address type (bip84|bip44)")
 }
 
-func runWalletGenerate(cmd *cobra.Command, args []string) error {
+func runWalletGenerate(cmd *cobra.Command, _ []string) error {
 	if isVerbose(cmd) {
 		logger.Init(true)
 	}

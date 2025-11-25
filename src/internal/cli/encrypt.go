@@ -89,11 +89,13 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 	logger.WithField("compressed", wif.CompressPubKey).Debug("Successfully decoded WIF private key")
 
 	// Apply compression flags when user requests
-	if forceCompressed {
+	// Apply compression flags when user requests
+	switch {
+	case forceCompressed:
 		wif.CompressPubKey = true
-	} else if forceUncompressed {
+	case forceUncompressed:
 		wif.CompressPubKey = false
-	} else {
+	default:
 		// Use global compressed flag when no specific flag is set
 		wif.CompressPubKey = isCompressed(cmd)
 	}
@@ -162,7 +164,7 @@ func runEncrypt(cmd *cobra.Command, args []string) error {
 
 func getPassphrase(prompt string) ([]byte, error) {
 	fmt.Print(prompt)
-	bytePassword, err := readPassword(int(syscall.Stdin))
+	bytePassword, err := readPassword(syscall.Stdin)
 	if err != nil {
 		return nil, err
 	}

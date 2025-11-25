@@ -1,3 +1,4 @@
+// Package main is the entry point for the bip38cli application.
 package main
 
 import (

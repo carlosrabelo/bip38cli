@@ -1,3 +1,4 @@
+// Package bip38 implements the BIP38 standard for encryption and decryption of Bitcoin private keys.
 package bip38
 
 import (
