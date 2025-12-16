@@ -71,17 +71,6 @@ Remove the binary later with the matching uninstall script:
 sudo ./scripts/uninstall.sh
 ```
 
-### Run via Docker
-
-```bash
-# Show CLI help inside the container
-./scripts/bip38cli-docker.sh --help
-
-# Execute commands without installing Go locally
-./scripts/bip38cli-docker.sh encrypt --verbose
-```
-
-The helper script keeps Docker artefacts under `docker/` and will build a local image on demand. For advanced scenarios see `docker/README.md`.
 
 ## Usage
 

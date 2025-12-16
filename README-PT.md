@@ -71,17 +71,6 @@ Remova o binário mais tarde com o script correspondente:
 sudo ./scripts/uninstall.sh
 ```
 
-### Executar via Docker
-
-```bash
-# Exibir ajuda dentro do container
-./scripts/bip38cli-docker.sh --help
-
-# Executar comandos sem instalar Go localmente
-./scripts/bip38cli-docker.sh encrypt --verbose
-```
-
-O script mantém os artefatos em `docker/` e constrói a imagem local sob demanda. Veja `docker/README.md` para cenários avançados.
 
 ## Uso
 

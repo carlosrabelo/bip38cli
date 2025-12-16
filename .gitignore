@@ -55,8 +55,6 @@ coverage.html
 tmp/
 temp/
 
-# Docker
-.dockerignore
 
 # Vagrant
 .vagrant
