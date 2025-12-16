@@ -1,3 +1,4 @@
+MAKEFLAGS += --no-print-directory
 SRC_DIR := src
 
 .DEFAULT_GOAL := help

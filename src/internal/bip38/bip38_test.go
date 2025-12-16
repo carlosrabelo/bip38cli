@@ -255,7 +255,9 @@ func TestGenerateWIF(t *testing.T) {
 
 	if wif == nil {
 		t.Fatal("GenerateWIF returned nil WIF")
+		return
 	}
+
 
 	if !wif.IsForNet(&chaincfg.MainNetParams) {
 		t.Fatal("expected WIF to belong to mainnet")
