@@ -1,8 +1,6 @@
 module github.com/carlosrabelo/bip38cli
 
-go 1.24.0
-
-toolchain go1.24.8
+go 1.25.5
 
 require (
 	github.com/btcsuite/btcd v0.24.2

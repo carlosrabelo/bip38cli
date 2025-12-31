@@ -3,7 +3,7 @@
 A focused command-line application that implements the [BIP38](https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki) standard to encrypt and decrypt Bitcoin private keys with passphrase protection.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25%2B-blue.svg)](https://go.dev/)
 [![Release](https://img.shields.io/github/release/carlosrabelo/bip38cli.svg)](https://github.com/carlosrabelo/bip38cli/releases)
 
 ## Highlights
@@ -22,9 +22,9 @@ A focused command-line application that implements the [BIP38](https://github.co
 ```
 core/
   cmd/bip38cli/             # Go entry point for the CLI binary
-  internal/app/cli/         # Cobra commands and user interaction flows
-  internal/domain/bip38/    # BIP38 domain logic and tests
-  pkg/                      # Reserved for future public packages
+  internal/cli/             # Cobra commands and user interaction flows
+  internal/bip38/           # BIP38 domain logic and tests
+  pkg/                      # Internal packages and utilities
   Makefile                  # Go-specific build helpers
 bin/
   .gitkeep                  # Binary output directory placeholder

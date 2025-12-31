@@ -80,7 +80,7 @@ issues:
         - funlen
         - goconst
         - gocyclo
-    - path: src/cmd/
+    - path: core/cmd/
       linters:
         - gochecknoinits
   exclude-use-default: false

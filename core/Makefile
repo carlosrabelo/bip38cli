@@ -3,7 +3,8 @@ BIN_NAME      := bip38cli
 BUILD_DIR     := ../bin
 VERSION       := $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 BUILD_TIME    := $(shell date +%Y-%m-%dT%H:%M:%S%z)
-LDFLAGS       := -s -w -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)
+CGO_ENABLED := 0
+LDFLAGS     := -s -w -extldflags "-static" -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)
 export GOROOT :=
 
 .DEFAULT_GOAL := help
@@ -12,10 +13,10 @@ export GOROOT :=
 
 all: lint test build
 
-build: ## Build bip38cli binary with version metadata
-	@echo "Building $(BIN_NAME)..."
+build: ## Build bip38cli binary with version metadata (fully static)
+	@echo "Building $(BIN_NAME) (static)..."
 	@mkdir -p $(BUILD_DIR)
-	@$(GO) build -trimpath -tags netgo -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BIN_NAME) ./cmd/bip38cli
+	@CGO_ENABLED=$(CGO_ENABLED) $(GO) build -trimpath -tags netgo -ldflags='$(LDFLAGS)' -o $(BUILD_DIR)/$(BIN_NAME) ./cmd/bip38cli
 
 clean: ## Remove build outputs and go caches
 	@echo "Cleaning build outputs..."
@@ -27,7 +28,7 @@ fmt: ## Run gofmt across all Go sources
 	@go fmt ./...
 
 help: ## Show available targets
-	@echo "BIP38CLI - src/ targets"
+	@echo "BIP38CLI - core/ targets"
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) \
 		| sort \
