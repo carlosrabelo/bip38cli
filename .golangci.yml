@@ -1,0 +1,93 @@
+version: 2
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+  gocyclo:
+    min-complexity: 15
+  depguard:
+    rules:
+      MyAllowed:
+        files:
+          - $all
+        allow:
+          - $gostd
+          - github.com/carlosrabelo/bip38cli/**
+          - github.com/btcsuite/btcd/**
+          - github.com/spf13/cobra
+          - golang.org/x/crypto/**
+          - github.com/sirupsen/logrus
+          - github.com/stretchr/testify/**
+          - golang.org/x/term
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: US
+  lll:
+    line-length: 160
+  goimports:
+    local-prefixes: github.com/carlosrabelo/bip38cli
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - whyNoLint
+      - wrapperFunc
+
+linters:
+  enable:
+    - bodyclose
+    - dogsled
+    - dupl
+    - errcheck
+    - gocyclo
+    - revive
+    - goprintffuncname
+    - goprintffuncname
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - noctx
+    - nolintlint
+    - rowserrcheck
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gomnd
+        - funlen
+        - goconst
+        - gocyclo
+    - path: cmd/
+      linters:
+        - gochecknoinits
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+
+output:
+  print-issued-lines: true
+  print-linter-name: true
