@@ -1,0 +1,70 @@
+# ============================================================================
+# SECRETS
+# ============================================================================
+
+# Directories
+# (none - secrets are typically files)
+
+# Files
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# ============================================================================
+# GO
+# ============================================================================
+
+# Directories
+bin/*
+!bin/.gitkeep
+dist/
+build/
+vendor/
+
+# Files
+# Root binary name omitted: it would ignore the bip38cli/ source package.
+# Builds use bin/bip38cli via make / .make/build.sh.
+go.work
+go.work.sum
+*.test
+*.out
+*.prof
+coverage.out
+coverage.html
+
+# ============================================================================
+# EDITORS
+# ============================================================================
+
+# Directories
+.vscode/
+.idea/
+.history/
+
+# Files
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# OS
+# ============================================================================
+
+# Directories
+tmp/
+temp/
+.nexor/
+.vagrant/
+
+# Files
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+thumbs.db
+ehthumbs.db
